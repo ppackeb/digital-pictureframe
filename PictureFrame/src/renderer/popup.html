@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Digital PictureFrame</title>
+        <style>
+        #readingimages{
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width:20%;
+            height: auto;
+            z-index: 20;
+        }
+
+        </style>
+    </head>
+    <body>
+        <p id='titleText'></p>
+        <img id="readingimages" src="./assets/images/copyfiles.png">
+    </body>        
+    <script type="text/javascript" src="../common/requireModule.js"></script>
+    <script>
+
+
+      // Set popup title
+    ipcRenderer.on('popup-title', (event, arg) => {
+        document.getElementById('titleText').innerHTML = "<center><h3>" + arg + "</h3></center>";        
+    });
+    
+    </script>

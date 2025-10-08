@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style> 
+  body, html {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    background-color: white;
+    overflow: hidden;
+    touch-action: none;
+  }
+  .lock-screen {
+    height: 100%;
+    overflow: hidden;
+    width: 100%;
+    position: fixed;
+  }
+  .horizontal-line {
+    position: absolute;
+    bottom: 15%;
+    width: 100%;
+    border-top: 2px solid black;
+  }
+  .button-container {
+    position: absolute;
+    bottom: 1%;    
+  }     
+  td {
+    padding-left: 30px;    
+    padding-right: 30px;    
+  }
+  .instruction-text {
+    position: absolute;
+    width: 100%;
+    top: 10%;
+    left: 0;
+    text-align: center;
+    color: #bbb;
+    font-size: 1.5em;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: none;
+    font-family: sans-serif;
+  }
+  </style>
+  <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+</head>
+
+<body onload="PrepMessage('initialize')" class="lock-screen">
+
+  <div class="instruction-text">Tap and drag to move magnifier</div>
+  <div class="horizontal-line"></div>
+  <div class="button-container">
+    <table>
+      <tr>
+        <td style="text-align:center;">          
+          <input type="image" id="home" name="home" src='home.png' style="height:80px" onclick="PrepMessage('closepage')">
+        </td>
+        <td><br></td>
+        <td style="text-align:center;">
+          <input type="image" id="zoom" name="zoom" src='plusicon.png' style="height:80px" onclick="PrepMessage('setzoom')">
+        </td>        
+      </tr>
+  </table>
+  </div>  
+</body>
+<script type='text/javascript' src='appServer.js'></script>
+<script src="../../common/customAlert.js"></script>
+<script>
+
+// for closepage done: 0 = page just opened, 1 = page is sending valide data, 2 = page is closing
+let messagePayload = {
+  "command": "ZoomImage",
+  "data": { "xpos": 0, "ypos": 0 },
+  "window": { "winw": 0, "winh": 0 },
+  "zoom": { "zoomlevel": 1 },
+  "closepage": { "done": 0 }
+};
+let zoomicontoggle = true;
+let windowWidth = 0;
+let windowHeight = 0;
+
+
+
+/*
+Prepares and sends a command to the server via the makeRequest function.
+@param {string} payload - The command string to send.
+@returns {Promise<any>} A promise that resolves with the processed response data.
+.invoke/.handle is used for request-response pattern
+.send/.on is used for fire-and-forget or one-way messages
+*/
+async function PrepMessage(payload) {
+  switch (payload) {
+    case 'closepage':
+      messagePayload.closepage.done = 2; //update messagePayload      
+      location.href = '/';
+    break;
+
+    case 'setzoom':
+      const zoomElement = document.getElementById('zoom');
+
+      if (zoomicontoggle) {
+        zoomElement.src = 'minusicon.png';
+        zoomicontoggle = false;
+        zoomlevel = 2;
+      } else {
+        zoomElement.src = 'plusicon.png';
+        zoomicontoggle = true;
+        zoomlevel = 1;
+      }
+      // Update the payload object directly
+      messagePayload.zoom.zoomlevel = zoomlevel;
+      messagePayload.data.xpos = windowWidth / 2;
+      messagePayload.data.ypos = windowHeight / 2;
+      messagePayload.closepage.done = 1;
+    break;
+
+    case 'initialize':
+      // Get window dimensions
+      windowWidth = window.innerWidth;
+      windowHeight = window.innerHeight;
+
+      // Get the position of the horizontal line from the top of the document
+      const lineElement = document.querySelector('.horizontal-line');
+      const lineBottomPosition = lineElement.offsetTop + lineElement.offsetHeight;
+
+      // Calculate the usable height
+      const usableHeight = windowHeight - (windowHeight - lineBottomPosition);
+
+      // Update the object's properties directly
+      messagePayload.window.winw = windowWidth;
+      messagePayload.window.winh = usableHeight;
+      messagePayload.closepage.done = 0; // Page just opened
+    break;
+
+    case 'zoomMove':
+      messagePayload = messagePayload; // just here to show that messagePayload is already updated in handleMovement function
+    break;
+
+    default:    
+    return;
+  }
+  try {
+    // Await the response from the new, async makeRequest function.
+    const returnData = await makeRequest('/app_sendrequest', messagePayload);
+    command = returnData.command;
+    data = returnData.data;
+    // Handle the response based on the command.
+    switch(messagePayload.command){
+      default:          
+      break;
+    }      
+  } catch (error) {  
+    // from customAlert.js    
+    //ShowAlert('Error in html POST. '+ error, false).then((result) => { })    
+  }
+}
+
+
+// handle mouse  movement
+onmousemove = async function(eventObj) {
+  const lineElement = document.querySelector('.horizontal-line');
+  const lineBottomPosition = lineElement.offsetTop + lineElement.offsetHeight;
+  
+  const yPos = eventObj.clientY < lineBottomPosition 
+    ? eventObj.clientY 
+    : lineBottomPosition - 1;
+  // Update payload
+  messagePayload.data.xpos = eventObj.clientX;
+  messagePayload.data.ypos = yPos;
+  messagePayload.closepage.done = 1;
+
+  // Await PrepMessage if it's async
+  PrepMessage('zoomMove');
+};
+
+document.addEventListener('touchmove', async function(e) {
+  const touch = e.touches[0];  // Get the first touch point
+  const lineElement = document.querySelector('.horizontal-line');
+  const lineBottomPosition = lineElement.offsetTop + lineElement.offsetHeight;
+
+  const yPos = touch.clientY < lineBottomPosition 
+    ? touch.clientY 
+    : lineBottomPosition - 1;
+  // Update the payload directly
+  messagePayload.data.xpos = touch.clientX;
+  messagePayload.data.ypos = yPos;
+  messagePayload.closepage.done = 1;
+
+  // Await PrepMessage if it's async
+  PrepMessage('zoomMove'); 
+});
+
+</script>
+</html>

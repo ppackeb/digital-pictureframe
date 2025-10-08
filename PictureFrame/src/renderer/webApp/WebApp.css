@@ -1,0 +1,205 @@
+/*
+'.' is a class selector e.g. 'class=class_name'
+'#' is an id selector e.g. 'id=id_name'
+'' is a type selector updating all elements of that type e.g. body
+id overrides class selectors in css
+*/
+
+
+body {
+    font-family: Arial, sans-serif;
+    font-size: 20px;
+    line-height: 1.2;
+    padding-bottom: 80px; /* same or greater than the button height + margin */
+}
+
+input, button, select, textarea {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+}
+
+input::placeholder {
+  color: #999; /* light gray */
+  font-style: italic;
+}
+
+table {
+    border-collapse: collapse;
+    width: 90%;
+}
+
+td, th{    
+    font-family: Arial, sans-serif;
+    font-size:20px;
+    text-align: left;
+    padding: 10px;   
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: normal;
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+tr:nth-child(even){
+    background-color: #f2f2f2;
+}
+
+#table-scroll {
+  overflow-y: auto;
+  height: calc(6 * 30px + 2px); /* Approximate row height x 10, plus buffer */
+  max-height: calc(100vh - 300px); /* allow growing to fill screen if needed */
+  width: 100%;
+  margin-top: 0px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+#playlist_dir {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+#table-scroll2 {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    max-height: 300px;
+    margin-top: 10px;
+}
+
+#dir_table {
+  width: 100%;           /* allow it to expand with modal */
+}
+
+
+tr.grey th {
+    background-color: white;
+}
+
+    /* below stuff is for my modal sytling */
+.modal {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    width: 325px;
+    min-height: 400px;
+    max-height: 400px;
+    position: absolute;
+    top: 15%;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 15px;
+    padding: 1.3rem;
+    overflow: hidden;
+    z-index: 2;
+}
+
+
+.modal .flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal input {
+    padding: 0.7rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 0.9em;
+}
+
+.modal p {
+    font-size: 0.9rem;
+    color: #777;
+    margin: 0.4rem 0 0.2rem;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+  /*  font-weight: 600; */
+}
+
+.btn {
+    display: inline-block;  
+    text-align: center;
+    height: 100px;
+    width: 150px;
+}
+
+
+.btn-open {
+    position: absolute;
+    bottom: 150px;
+}
+
+
+.overlay {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 1;
+}
+
+
+.modal-bottom-buttons {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 60px;
+    z-index: 1000;    
+}
+
+.full-width-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+.bottom-buttons {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 60px;  
+  padding-bottom:10px;
+  background-color: white; /* optional: ensure text behind it doesn't bleed through */
+}
+ 
+.hidden {
+    display: none;
+}
+
+/* Ensure the table layout is fixed for predictable column widths */
+#FolderTable {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* First column: ellipsis on overflow */
+#FolderTable td:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0; /* Ensures it shrinks if needed */
+}
+
+/* Last column: keep icon visible */
+#FolderTable td:last-child {
+  width: 40px; /* or whatever fits your icon */
+  text-align: center;
+}

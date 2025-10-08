@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+ 
+  </style>
+  <link rel='stylesheet' href='WebApp.css'>   
+  <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">  
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body onload="Initialize()">
+  <b><center>Notifications</center></b>
+  <br>
+  <div id="table-scroll2" style="max-height: 500px">
+    <table id="markedFiles"  style="border: 1px solid #ccc;" >
+        <tr class="grey"></tr>
+    </table>
+  </div> 
+  <br>
+
+  <div class="bottom-buttons" style="margin-left: -10px;">   
+    <input type=image id="home" name="home" src='../renderer/assets/images/home.png' style="height:80px" onclick="location.href='/appOptions';">    
+    <button id="delete" name="delete" style="height:40px; width:120px;" onclick="PrepMessage('DeleteMarkedFilesList')">Clear All</button>
+  </div>  
+
+</body>
+<script type='text/javascript' src='appServer.js'></script>
+<script src="../../common/customAlert.js"></script> 
+<script>
+
+
+// there is a startshow call in main.js to start the display.html.  in display_function (called by display.html) the g_selPLAYLIST variable
+// is what is looked at for selected playlist.  Should just be able to update this variable, close display.html and then call startshow
+
+
+  async function PrepMessage(payload){  
+    let messagePayload = null;    
+    switch (payload){  
+      case 'DeleteMarkedFilesList':      
+        messagePayload = {command:"DeleteMarkedFilesList", data: null};
+        document.getElementById('home').click();
+      break;
+      case 'readMarkedFileList':
+        messagePayload = {command:"readMarkedFileList", data: null};
+      break;
+    }  
+    try {
+      // Await the response from the new, async makeRequest function.
+      const returnData = await makeRequest('/app_sendrequest', messagePayload);
+      command = returnData.command;
+      data = returnData.data;
+      // Handle the response based on the command.
+      switch(messagePayload.command){
+        case 'readMarkedFileList':        
+          return data;
+        break;
+
+        default:          
+        break;
+      }      
+    } catch (error) {      
+      //ShowAlert('Error in html POST. '+ error, false).then((result) => { })    
+    }
+  }
+
+
+
+async function Initialize(){
+  returnData = await PrepMessage('readMarkedFileList')     
+    const markedFilesTable = document.getElementById('markedFiles');
+    //let rowentry = '<tr><td>There are no Marked Items or Warnings</td></tr>';
+    //markedFilesTable.insertAdjacentHTML('beforeend', rowentry);    
+    const keyDisplayNames = {
+      rotate: "Items Marked for Rotation",
+      delete: "Items Marked for Deletion",
+      error: "General Warnings"
+    };
+    const MarkedItems ={
+      rotate: "no items",
+      delete: "no items",
+      error: "no warnings"
+    }
+    let rowentry = '';
+    Object.keys(returnData).forEach(function (key) {
+      // Use the mapped display name if available, otherwise use the key
+      const displayName = keyDisplayNames[key] || key;
+
+      // Insert header row with word-wrap styling
+      let rowentry = '';
+      rowentry += '<tr>';
+      rowentry += '<td style="border: 1px solid #ccc; word-break: break-word; white-space: normal;">';
+      rowentry += '<b>' + displayName + '</b></td>';
+      rowentry += '</tr>';
+      markedFilesTable.insertAdjacentHTML('beforeend', rowentry);
+
+      // Insert file entries or empty message
+      rowentry = '';
+      if (returnData[key].length === 0) {
+        const Displaymsg = MarkedItems[key] || key;
+        rowentry += '<tr>';
+        rowentry += '<td style="border: 1px solid #ccc; color: #999; font-style: italic; word-break: break-word; white-space: normal;">';
+        rowentry += '(' + Displaymsg + ')</td>';
+        rowentry += '</tr>';
+      } else {
+        returnData[key].forEach(function (value) {
+          rowentry += '<tr>';
+          rowentry += '<td style="border: 1px solid #ccc; word-break: break-word; white-space: normal;">';
+          rowentry += value + '</td>';
+          rowentry += '</tr>';
+        });
+      }
+      markedFilesTable.insertAdjacentHTML('beforeend', rowentry);
+    });     
+}
+
+
+
+
+
+</script>
+
+</html>

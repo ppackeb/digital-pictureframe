@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style> 
+
+html, body {
+  height: 100%;
+  margin: 5px;
+  padding: 5px;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  line-height: 1.2;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+  
+input, button, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.bottom-buttons {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 80px;
+  padding: 2vh 0;
+  margin-left: -15px;  
+  background-color: white; /* optional: ensure text behind it doesn't bleed through */ 
+}
+
+.center-section {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;; /* vertical centering in available space */
+  margin-top: 40px; /* adjust as needed */
+}
+
+#labelipv6, #labelipv4 {
+  text-align: center;   /* centers inline text */
+}
+
+
+	</style>
+  <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+</head>
+
+<body onload='initialize()'>
+  <div style="height: 1.5em; width: 100%; text-align: center; margin-top: 20px;">
+    <b>IP Addresses and Port</b>
+  </div>
+  <div class="center-section">
+    <strong>Local IPv4</strong>
+    <div id = "labelipv4"></div>
+    <div id="qrcodeipv4" ></div>
+    <p> </p>
+    <strong>Local IPv6</strong>
+    <div id = "labelipv6"></div>
+    <div id="qrcodeipv6" ></div>    
+  </div>
+
+  <div class="bottom-buttons">        
+    <input type="image" id="home" name="home" src="../renderer/assets/images/home.png"  style="height:80px" onclick="location.href='/appOptions';">
+  </div>   
+
+</body>
+
+<script type='text/javascript' src='appServer.js'></script>
+<script type="text/javascript" src="../../common/qrcode.js"></script>
+<script src="../../common/customAlert.js"></script> 
+<script>
+
+
+  var qrcodeipv6 = new QRCode(document.getElementById("qrcodeipv6"), {
+    width : 150,
+    height : 150    
+  });
+  var qrcodeipv4 = new QRCode(document.getElementById("qrcodeipv4"), {
+    width : 150,
+    height : 150
+  });
+
+
+
+  async function initialize(){
+    data = await PrepMessage('app_readDB');    
+    ip_local(data.appPort);            
+  }
+
+  async function PrepMessage(payload){  
+    messagePayload = null;
+    switch (payload){
+      case 'app_readDB':
+        messagePayload = {command:"app_readDB", data:null};
+      break;            
+      case 'app_getQRCode':
+        messagePayload = {command:"app_getQRCode", data:null};
+      break;
+    }  
+    try {
+      // Await the response from the new, async makeRequest function.
+      returnData = await makeRequest('/app_sendrequest', messagePayload);
+      command = returnData.command;
+      data = returnData.data;
+      // Handle the response based on the command.
+      switch(messagePayload.command){
+        case 'app_readDB':
+          return data;
+        break;
+        case 'app_getQRCode':
+          return data;
+        break;
+        default:          
+        break;
+      }      
+    } catch (error) {        
+      //ShowAlert('Error in html POST. '+ error, false).then((result) => { })  
+    }         
+  }
+
+  async function ip_local(g_appPort){ 
+    addresses = await PrepMessage('app_getQRCode');        
+    if (addresses.ipv6.length != 0) { // The ipv6 array is not empty     
+      document.getElementById('labelipv6').style.wordBreak = "break-word";         
+      document.getElementById("labelipv6").textContent = addresses.ipv6 + ':' + g_appPort;          
+      let finalIP = "http://[" + addresses.ipv6 + "]:" + g_appPort;              
+      qrcodeipv6.makeCode(finalIP);                                      
+    }else{
+      document.getElementById('qrcodeipv6').parentElement.style.verticalAlign = "top";
+      document.getElementById('qrcodeipv6').style.whiteSpace = "normal";
+      document.getElementById('qrcodeipv6').style.wordBreak = "break-word";
+      document.getElementById('qrcodeipv6').textContent = 'IPv6 is not currently enabled in the network settings of the computer';        
+    }
+    if (addresses.ipv4.length != 0) {        
+      document.getElementById("labelipv4").textContent = addresses.ipv4  + ':' + g_appPort;
+      let finalIP = "http://" + addresses.ipv4 + ":" + g_appPort;
+      qrcodeipv4.makeCode(finalIP);
+    }else{
+      document.getElementById('labelipv4').parentElement.style.verticalAlign = "top";
+      document.getElementById('labelipv4').style.whiteSpace = "normal";
+      document.getElementById('labelipv4').style.wordBreak = "break-word";
+      document.getElementById('labelipv4').textContent = 'IPv4 is not currently enabled in the network settings of the computer';        
+    }
+  }
+
+</script>
+</html>
