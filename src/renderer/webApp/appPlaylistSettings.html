@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel='stylesheet' href='WebApp.css'>     
+  <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+</head>
+
+<body id="appplaylistsettings" onload="initialize()">  
+  <p class="titleStyle">Configuration Settings</p>
+  <label for="playlist_name">Current Playlist</label>  
+  <br>
+  <select name ="playlist_name" id="playlist_name" ></select>  
+  <p></p>
+  <label for="baseDELAY">Item Display Time</label>  
+  <br>
+  <select id="baseDELAY" name="baseDELAY" >    
+    <option value="5000">5 seconds</option>
+    <option value="10000">10 seconds</option>
+    <option value="15000">15 seconds</option>
+    <option value="20000">20 seconds</option>
+    <option value="30000">30 seconds</option>    
+  </select>
+  <br>
+  <br>
+  <label for="preloadNUM">Items to Queue</label>  
+  <br>
+  <select id="preloadNUM" name="preloadNUM" onchange ='prefetchcheck()' >
+    <option value="1">1 </option>  
+    <option value="5">5 </option>  
+    <option value="10">10 </option>
+    <option value="20">20 </option>
+    <option value="30">30 </option>     
+  </select>
+  <br>
+  <br>
+  <label for="prefetchNUM">Items per Folder to Queue</label>  
+  <select id="prefetchNUM" name="prefetchNUM" onchange ='prefetchcheck()' >
+    <option value="1">1 </option>      
+    <option value="5">5 </option>
+    <option value="10">10 </option>        
+  </select>  
+  <br>
+  <p></p>            
+  <label for="AppStartDirectory">Top Item Folder</label>
+  <br>
+  <input readonly class= "startDirectory" type="text" id="AppStartDirectory" name="AppStartDirectory"/>
+
+  <p></p>
+  <label>Pause loading new items between:</label>
+  <br>
+  <label for="StartTime">Start</label>
+  <select style="width:100px;" id="StartTime"></select>
+  <label  style="padding-left:10px" for="StopTime">End</label>
+  <select style="width:100px;" id="StopTime"></select>  
+  <p></p>    
+  <input type="checkbox" id="nightlybuild" name="nightlyrebuild">
+  <label for="nightlybuild">Refresh playlists nightly</label>  
+  <p></p>    
+  <div class="bottom-buttons"  >
+    <button id="accept" name="accept"  onclick="WriteDB()">Save</button>
+    <button id="rebuildAll" name="rebuildAll"  onclick="RebuildAll()">Save & Refresh</button>
+    <button id="cancel" name="cancel" onclick="location.href='/appOptions';">Cancel</button>
+  </div>
+
+  <!-- Modals for disabling inputs while database or playlists are updating-->    
+  <div id="modalSavingCombined">
+    <div class="modal-content">
+      <span>Rebuilding Playlists and updating configuration settings</span>
+      <img src="../renderer/assets/images/copyfiles.png" alt="loading" >
+    </div>
+  </div>
+
+
+</body>
+<script type='text/javascript' src='appServer.js'></script>
+<script src="../../common/customAlert.js"></script> 
+<script src="../../common/folderBrowser.js"></script>
+<script>
+
+
+// all UI elements
+let playlists;  // holds g_playlist data returned from serverside read in DBFunctions.js
+let selPLAYLIST = "";
+let basedelay = 0;
+let preloadNUM = 0;
+let prefetchNUM = 0;
+let startDirectory = "";
+let StartTimeValue = 0;
+let StopTimeValue = 0;
+let nightlyrebuild = false; 
+let appStartDir = ""; 
+
+const StartTime = document.getElementById("StartTime");
+const StopTime = document.getElementById("StopTime");
+
+
+document.getElementById("StartTime").addEventListener("change", handleTimeChange);
+document.getElementById("StopTime").addEventListener("change", handleTimeChange);
+
+async function initialize(){
+  result = await PrepMessage('app_readDB')
+  WriteUI(result);    
+};
+
+document.getElementById('AppStartDirectory').addEventListener('click', function (e) {        
+   openModal(function(selectedDir) {  
+      document.getElementById('AppStartDirectory').value = selectedDir; 
+   });
+});
+
+async function PrepMessage(payload){
+  let messagePayload = null;
+  switch (payload){
+    case 'TopImageDir':
+      messagePayload = {command:"ImageDir", data:"TopDir" };
+    break;
+    case 'SubImageDir': 
+      messagePayload = {command: "ImageDir", data: SubDir}; 
+    break;
+    case 'appRebuildAll': 
+      document.getElementById('modalSavingCombined').style.display = 'flex';
+      messagePayload = {command:"appRebuildAll", data:null };
+    break;
+    case 'ImageDir':
+      messagePayload = {command:"ImageDir", data:"TopDir" };
+    break;
+    case 'app_writeDB':
+      ReadUI();
+      let data = {
+        selPLAYLIST: selPLAYLIST,
+        basedelay: basedelay,
+        preloadNUM: preloadNUM,
+        prefetchNUM: prefetchNUM, 
+        StartTime: StartTimeValue,
+        StopTime: StopTimeValue,
+        nightlyrebuild: nightlyrebuild,
+        appStartDir: appStartDir
+      };
+      messagePayload = {command: "app_writeDB",data: data}; 
+    break;
+    case 'app_readDB':
+      messagePayload = {command:"app_readDB", data:""};
+    break;
+  } 
+
+  try {
+    // Await the response from the new, async makeRequest function.
+    const returnData = await makeRequest('/app_sendrequest', messagePayload);
+    command = returnData.command;
+    data = returnData.data;
+    // Handle the response based on the command.
+    switch(messagePayload.command){
+      case 'app_readDB':        
+        return data;
+      break;
+      case 'ImageDir':        
+        return data.data;
+      break;
+      case 'appRebuildAll':        
+        if (data.data){           
+          document.getElementById('modalSavingCombined').style.display = 'none';
+          await ShowAlert("Error rebuilding one or more Playlists", false);
+        } else {
+          document.getElementById('modalSavingCombined').style.display = 'none';
+          await ShowAlert("Update successfull", false);          
+          location.href='/appOptions';
+        } 
+      break;
+
+      default:          
+      break;
+    }      
+  } catch (error) {      
+    //ShowAlert('Error in html POST. '+ error, false).then((result) => { })    
+  }
+}
+
+function GetHelpAddFolder(){
+  alert('Type the folder path directly or click the folder path to progress in the hierarchy to find the desired folder.  Click "Save" to add the folder path to the playlist.  Use the "Back" button to move up the current folder hierarchy path.  Use "Cancel" to exit without adding a folder to the playlist');
+}
+
+// rebuilds all playlists as well as all meta data
+async function RebuildAll(){  
+  await PrepMessage('app_writeDB');
+  PrepMessage('appRebuildAll'); // rebuild all playlists and images  
+}
+
+function WriteDB(){
+  PrepMessage('app_writeDB')
+  location.href = '/appOptions'; // go back to options page after saving
+}
+
+
+
+function generateTimeOptions() {
+  const times = [];
+  for (let h = 0; h <= 24; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      if (h === 24 && m > 0) break; // Ensure we don't go past 24:00
+      let hour = String(h).padStart(2, '0');
+      let minute = String(m).padStart(2, '0');
+      times.push(`${hour}:${minute}`);
+    }
+  }
+  return times;
+}
+
+function populateDropdown(dropdown, times) {
+  dropdown.innerHTML = ""; // Clear existing options
+  times.forEach(time => {
+    let option = document.createElement("option");
+    option.value = time;
+    option.textContent = time;
+    dropdown.appendChild(option);
+  });
+}
+
+function getNextTime(startTime) {
+  const times = generateTimeOptions();
+  let index = times.indexOf(startTime);
+  return index >= 0 && index < times.length - 1 ? times[index + 1] : times[times.length - 1];
+}
+
+function handleTimeChange() {
+  let startTime = StartTime.value;
+  let stopTime = StopTime.value;
+  // If StartTime and StopTime are the same, adjust StopTime to be 30 minutes after StartTime
+  if (startTime === stopTime) {
+      StopTime.value = getNextTime(startTime);
+  }
+}
+
+
+function prefetchcheck(){
+  ReadUI(); // loads UI elements into global variables  
+  if (prefetchNUM > preloadNUM){
+    document.getElementById('prefetchNUM').value = preloadNUM;
+  }
+}
+
+function parseplaylist(selectedplaylist){
+  const playlistName = document.getElementById('playlist_name');
+  playlistName.innerHTML = '';
+
+  Object.keys(playlists).forEach(function(name){
+    parts = name.split('_');
+    displayName = parts[1];
+
+    let remainingString = name.slice(9);  //remove 'playlist_'
+    let new_name;
+    if (remainingString.includes('_')){        
+      new_name = remainingString.replace(/_/g, ','); 
+      if (new_name.includes('$')){  
+        new_name = new_name.replace('$', '!');
+      }
+    } else {
+      new_name = remainingString;
+    }
+    const newOption = document.createElement('option');
+    newOption.value = name;
+    newOption.textContent = displayName;
+    playlistName.appendChild(newOption);
+  });
+
+  playlistName.value = selectedplaylist; // set selected playlist
+
+}
+
+
+function ReadUI(){
+  let new_name_val = document.getElementById('playlist_name').selectedOptions[0].value; 
+  // ensure playlist name is formatted correctly before storing in database
+  if (new_name_val.includes(',')) {
+    new_name_val = new_name_val.replace(/,/g, '_');        
+    if (new_name_val.includes('!')){  // ! is a reserved char for a table name
+      new_name_val = new_name_val.replace('!', '$');
+    }
+  }      
+  
+  selPLAYLIST = new_name_val;
+  basedelay = document.getElementById('baseDELAY').value; 
+  //preloadNUM = document.getElementById('preloadNUM').value;
+  preloadNUM = parseInt(document.getElementById('preloadNUM').value, 10);
+  //prefetchNUM = document.getElementById('prefetchNUM').value;  
+  prefetchNUM = parseInt(document.getElementById('prefetchNUM').value, 10);
+  StartTimeValue = document.getElementById('StartTime').value;  
+  StopTimeValue = document.getElementById('StopTime').value;
+  nightlyrebuild = document.getElementById('nightlybuild').checked;
+  appStartDir = document.getElementById('AppStartDirectory').value; 
+}
+
+function WriteUI(data){
+  playlists = data.playlists;        
+  document.getElementById('baseDELAY').value = parseInt(data.basedelay);
+  document.getElementById('preloadNUM').value = parseInt(data.preload);
+  document.getElementById('prefetchNUM').value = data.prefetch;            
+  parseplaylist('playlist_'+ data.selplaylist);
+  document.getElementById('nightlybuild').checked = data.nightlyrebuild;
+  document.getElementById('AppStartDirectory').value = data.appStartDir;   
+  let timeOptions = generateTimeOptions();
+  populateDropdown(StartTime, timeOptions);
+  populateDropdown(StopTime, timeOptions);
+  StartTime.value = data.startPauseTime;
+  StopTime.value = data.stopPauseTime;
+}
+
+
+
+
+</script>
+
+</html>

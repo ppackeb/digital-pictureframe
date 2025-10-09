@@ -1,0 +1,207 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+
+
+html, body {
+  height: 100%;
+  margin: 5px;
+  padding: 5px;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  line-height: 1.2;
+}
+  
+input, button, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+th, td {      
+  font-family: Arial, sans-serif;
+  text-align: left;
+  padding: 8px;
+  font-size:20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}   
+
+#playlists tr:nth-child(even) {
+  background-color: #f0f0f0; /* Light grey */
+}
+
+#playlists tr:nth-child(odd) {
+  background-color: #ffffff; /* White */
+}
+
+.table-wrapper {
+  overflow-y: auto;
+  padding-bottom: 10px; /* Optional: small bottom space */
+  height: calc(100vh - 120px); /* Adjust 120px based on button size + spacing */
+}
+
+.selected-row {
+  background-color: lightblue !important; /* override alternating color */
+}
+
+.bottom-buttons {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 80px;
+  padding: 2vh 0;
+  margin-left: -15px;  
+  background-color: white; /* optional: ensure text behind it doesn't bleed through */
+  
+}
+
+.selected-row {
+  background-color: #e0e0e0; /* A light grey background */
+  font-weight: bold; /* Make the text bold */
+  /* You can add more styles here, like borders or text color */
+}
+
+</style>
+  <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+</head>
+  
+
+<body onload='initialize()'>
+  <b><center>Current Playlist</center></b>
+  <br>
+  <div id="busyStatus" style="font-size:16px; color:red; text-align:center;"></div>
+  <div class="table-wrapper">
+    <table id="playlists" style="width:100%; border-collapse: collapse;">    
+      <tbody>
+        <!-- Rows will be inserted here -->
+      </tbody>
+    </table>
+  </div>
+      
+  <div class="bottom-buttons">    
+    <button id="accept" name="accept" style="height:40px; width:120px;"  onclick="PrepMessage('app_writeDB')">Save</button>
+    <button id="home" name="home" style="height:40px; width:120px;"  onclick="location.href='/';">Cancel</button>
+  </div>   
+   
+</body> 
+<script type='text/javascript' src='appServer.js'></script>
+<script src="../../common/customAlert.js"></script>
+<script>
+
+  let playlistNames = {}; //all loaded playlists
+  let selectedPlaylist = ""; // user selected playlist from click
+  let currentPlaylist = ""; //currently loaded playlist
+
+
+
+  async function PrepMessage(payload) {
+    let messagePayload = null;
+
+    switch (payload) {
+      case 'app_readDB':
+        messagePayload = { command: "app_readDB", data: "" };
+      break;
+      case 'app_writeDB':
+        if (selectedPlaylist !== "" && selectedPlaylist !== currentPlaylist) {
+          let data = {
+            selPLAYLIST: selectedPlaylist
+          };
+          messagePayload = { command: "app_writeDB", data: data };
+        }
+      break;
+      default:    
+      return;
+    }    
+    try {
+      // Await the response from the new, async makeRequest function.
+      const returnData = await makeRequest('/app_sendrequest', messagePayload);
+      command = returnData.command;
+      data = returnData.data;
+      // Handle the response based on the command.
+      switch(messagePayload.command){
+        case 'app_readDB':
+          return data;
+        break;
+        case 'app_writeDB':
+          location.href = '/';  
+        break;
+        default:          
+        break;
+      }      
+    } catch (error) {        
+      //ShowAlert('Error in html POST. '+ error, false).then((result) => {  })  
+    }    
+  }
+
+  async function initialize(){
+    data = await PrepMessage('app_readDB');
+    WriteUI(data);            
+  }
+
+
+  function WriteUI(data) {
+    playlists = data.playlists;
+    selectedPlaylist = "playlist_"+data.selplaylist;  
+    currentPlaylistDisplayname = selectedPlaylist.substring('playlist_'.length);
+
+    const tableBody = document.getElementById('playlists').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = '';
+
+    playlistNames = Object.keys(playlists);
+
+    // Sort alphabetically by display name (second part)
+    playlistNames.sort((a, b) => {
+      const nameA = a.split('_')[1]?.toLowerCase() || '';
+      const nameB = b.split('_')[1]?.toLowerCase() || '';
+      return nameA.localeCompare(nameB);
+    });
+
+    playlistNames.forEach((name, index) => {
+      parts = name.split('_');
+      displayName = parts[1];
+      FullName = name.substring('playlist_'.length);
+
+      const row = document.createElement('tr');
+
+      // Highlight if this is the selected playlist
+      if (FullName === currentPlaylistDisplayname) {
+          row.innerHTML = `<td>${displayName}<img src="app star.png" alt="comment" style="height:8px; width:auto"></td>`;
+          row.classList.add('selected-row'); // Add a CSS class
+          row.setAttribute('data-selected', 'true'); // Add a data attribute for programmatic access
+      }else{
+        row.innerHTML = `<td>${displayName}</td>`;  
+      } 
+
+      tableBody.appendChild(row);
+    });
+  }
+
+  document.getElementById("playlists").addEventListener("click", function(event) {
+    // Find the nearest parent <tr> of the clicked element
+    const row = event.target.closest("tr"); // Get the clicked row    
+    selectedPlaylist = playlistNames[row.rowIndex];   
+    if (!row) return;
+    // Remove 'selected-row' class from all rows
+    const rows = document.querySelectorAll("#playlists tr");
+    rows.forEach(r => r.classList.remove("selected-row"));
+    // Add 'selected-row' class to the clicked row
+    row.classList.add("selected-row");
+  });
+
+
+
+
+</script>
+
+</html>

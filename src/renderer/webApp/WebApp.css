@@ -1,0 +1,206 @@
+/*
+'.' is a class selector e.g. 'class=class_name'
+'#' is an id selector e.g. 'id=id_name'
+'' is a type selector updating all elements of that type e.g. body
+id overrides class selectors in css
+*/
+/* ===========================
+   Global Styles (shared)
+   =========================== */
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  line-height: 1.2;
+  padding-bottom: 80px; /* same or greater than the button height + margin */
+}
+
+input, button, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+input::placeholder {
+  color: #999; /* light gray */
+  font-style: italic;
+  width: 80%;
+}
+
+table {
+  border-collapse: collapse;
+  width: 90%;
+}
+
+td, th {    
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  text-align: left;
+  padding: 10px;   
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: normal;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+button {
+  cursor: pointer;
+  border: none;  
+}
+
+.titleStyle {  
+  text-align: center;  
+  font-weight: bold;
+}
+
+/* ===========================
+   appEditPlaylist Styles
+   =========================== */
+
+/* Scrollable table area */
+#table-scroll {
+  overflow-y: auto;
+  height: calc(6 * 30px + 2px); /* Approximate row height x 10, plus buffer */
+  max-height: calc(100vh - 300px); /* allow growing to fill screen if needed */
+  width: 100%;
+  margin-top: 0px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+/* Playlist folders table */
+#playlist_dir {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* Bottom action buttons */
+.bottom-buttons {
+  position: fixed;
+  bottom: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;  
+  margin-left: -10px;
+  padding-bottom: 10px;
+  background-color: white; /* optional: ensure text behind it doesn't bleed through */
+}
+
+.bottom-buttons button {    
+  width: 90px;
+  height: 50px;    
+}
+
+/* Playlist folders table */
+#FolderTable {
+  table-layout: fixed;
+  width: 100%;
+}
+
+/* Column widths */
+#FolderTable col:first-child {
+  width: 80%;
+}
+
+#FolderTable col:last-child {
+  width: 40px; /* keep icon column fixed */
+}
+
+/* First column cells: ellipsis */
+#FolderTable td:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0; /* allows shrinking */
+}
+
+/* Last column cells: centered content */
+#FolderTable td:last-child {
+  text-align: center;
+}
+
+/* Modal overlay for saving/processing */
+#modalSavingCombined {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 999;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Inner modal box */
+#modalSavingCombined .modal-content {
+  background: white;
+  border: 1px solid #888;
+  padding: 20px;
+  box-shadow: 2px 2px 10px gray;
+  width: 90vw;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-content img {
+  height: 1em;
+  vertical-align:middle; 
+  margin-left:8px;
+}
+
+
+/* Help icon style */
+.help-icon {
+  height: 20px;
+  border: none;
+  vertical-align: middle;
+}
+
+/* ===========================
+    appPlaylistSettings Styles
+   =========================== */
+
+
+body#appplaylistsettings select {     
+  width: 80%;  
+}
+
+.startDirectory{
+  width: 75%; 
+  text-overflow: ellipsis;
+}
+
+
+/* ===========================
+   Misc Styles
+   =========================== */
+
+/* Button utility styles */
+.btn {
+  display: inline-block;  
+  text-align: center;
+  height: 100px;
+  width: 150px;
+}
+
+.btn-open {
+  position: absolute;
+  bottom: 150px;
+}

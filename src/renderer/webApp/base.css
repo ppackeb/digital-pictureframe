@@ -1,0 +1,291 @@
+/*
+
+. - class
+# - id
+
+1 rem = 1 root font-size unit, e.g.font-size: 16px; (default browser font size ) 1rem = 16px, 20px = 1.25rem
+1 vw = 1% viewport width (the width of the visible screen)
+clamp(MIN, IDEAL, MAX)
+*/
+
+
+
+/*
+body {
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  line-height: 1.2;
+  padding-bottom: 80px; /* same or greater than the button height + margin 
+}
+*/
+
+body {
+  font-family: Arial, sans-serif;
+  font-size: clamp(1.25rem, 2vw, 2rem); /*clamp(MIN, IDEAL, MAX)*/
+  line-height: 1.4;
+  padding-bottom: 5vh;
+}
+
+input, button, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+header h3 {
+  text-align: center;
+}
+
+label {
+  display: block;
+}
+
+button {
+  cursor: pointer;
+  border: none;  
+}
+
+input::placeholder {
+  color: #999; /* light gray */
+  font-style: italic;
+  width: 80%;
+}
+
+
+.input-row {
+  display: flex;
+  align-items: center; /* vertically centers children */
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.input-row input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  height: clamp(2rem, 3vw, 2.5rem);  /*clamp(MIN, IDEAL, MAX)*/  
+  padding: 0 0.5rem;
+  font-size: inherit;
+  line-height: 1.2;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.help-icon {
+  height: clamp(16px, 1.5vw, 32px);
+  width: auto;
+  border: none;
+  align-self: center;
+}
+
+/* Scrollable table container */
+/* Scrollable container: fixed height for 10 rows, vertical scroll if needed */
+.scrollable-folder-table {
+  width: 98%;
+  max-height: calc(5 * 2.5rem); /* 10 rows * row height */
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+/* Table base */
+.folder-table {
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;           /* fixes column widths */
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.2;
+}
+
+/* Table cells */
+.folder-table td,
+.folder-table th {
+  padding: 0.25rem 0.5rem;       /* minimal spacing */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: normal;
+  border-bottom: 1px solid #eee; /* subtle row separation */
+}
+
+/* Optional: alternating row colors */
+.folder-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Column widths */
+.folder-table col.folder-name {
+  width: calc(100% - 40px);      /* first column fills remaining space */
+}
+
+.folder-table col.folder-icon {
+  width: 40px;                    /* fixed width for image column */
+}
+
+/* Rows: set minimal height */
+.folder-table tr {
+  height: 2.5rem;                 /* consistent row height */
+}
+
+/* Images in the right column */
+.folder-table td:last-child img {
+  height: clamp(16px, 1.5vw, 32px); /* responsive height */
+  width: auto;                      /* maintain aspect ratio */
+  display: block;
+  margin: 0 auto;                   /* center in cell */  
+  border: none;
+}
+/*
+/* Column widths 
+.folder-table col:first-child {
+  width: 80%;
+}
+
+.folder-table col:last-child {
+ width: 40px; /* keep icon column fixed 
+}
+*/
+
+
+/* Bottom action buttons */
+.bottom-buttons {
+  position: fixed;
+  bottom: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;  
+  margin-left: -10px;
+  padding-bottom: 10px;
+  background-color: white; /* optional: ensure text behind it doesn't bleed through */
+}
+
+.bottom-buttons button {    
+  width: 90px;
+  height: 50px;    
+}
+
+
+/*
+table {
+  border-collapse: collapse;
+  width: 90%;
+}
+
+td, th {    
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  text-align: left;
+  padding: 10px;   
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: normal;
+  padding-top: 5px;
+  padding-bottom: 5px;
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+button {
+  cursor: pointer;
+  border: none;  
+}
+
+
+
+// ===========================
+   appEditPlaylist Styles
+   =========================== //
+
+// Scrollable table area //
+
+#table-scroll {
+  overflow-y: auto;
+  height: calc(6 * 30px + 2px); // Approximate row height x 10, plus buffer 
+  max-height: calc(100vh - 300px); // allow growing to fill screen if needed 
+  width: 100%;
+  margin-top: 0px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+// Playlist folders table 
+#playlist_dir {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+
+
+// Playlist folders table 
+#FolderTable {
+  table-layout: fixed;
+  width: 100%;
+}
+
+// Column widths 
+#FolderTable col:first-child {
+  width: 80%;
+}
+
+#FolderTable col:last-child {
+  width: 40px; // keep icon column fixed 
+}
+
+// First column cells: ellipsis 
+#FolderTable td:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0; // allows shrinking 
+}
+
+// Last column cells: centered content 
+#FolderTable td:last-child {
+  text-align: center;
+}
+
+// Modal overlay for saving/processing 
+#modalSavingCombined {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 999;
+  align-items: center;
+  justify-content: center;
+}
+
+// Inner modal box 
+#modalSavingCombined .modal-content {
+  background: white;
+  border: 1px solid #888;
+  padding: 20px;
+  box-shadow: 2px 2px 10px gray;
+  width: 90vw;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-content img {
+  height: 1em;
+  vertical-align:middle; 
+  margin-left:8px;
+}
+
+

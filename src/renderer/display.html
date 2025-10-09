@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+   <head >
+      <link rel='stylesheet' href='display.css'>         
+      <title>Digital PictureFrame</title>
+   </head>
+   <body onload='initialize()'>
+
+      <div id='background'>
+         <img id='bg_img' src='./assets/images/default_background.jpg' alt='bgimage'>
+         <img id='bg_img2' src='./assets/images/default_background.jpg' alt='bgimage2'>
+      </div>      
+            
+      <div id="zoomlens" class="zoom-lens" style="display:none">
+         <img id='imgLens'>
+         <video id="videoLens" loop muted></video> 
+      </div>     
+
+      
+      <img id='mainimg' class='mainimg' src='./assets/images/default_background.jpg' alt='mainimage'  >                        
+   
+      <img id='mainimg2' class='mainimg' src='./assets/images/default_background.jpg' alt='mainimage2' >            
+   
+      <div id='ImageInfo'>
+         <div id='LoadedImages'></div>
+      </div>
+  
+      <div id='myvideo'>
+         <video id='playvideo' hidden ></video>
+      </div>
+
+      <img id='wifi' src="">
+      <img id='readingimages' src="">
+      <img id='IntervalPause' src="">
+      <img id='databaseError' src="">
+      <img id='deleteerror' src="">
+      <img id='pause' src="">
+      <img id='noRotation' src="">         
+      <img id='HideImage' src="">               
+      <svg id="pulse-circle" display="none" width="48" height="48" > 
+         <circle cx="24" cy="24" r="12"></circle> 
+      </svg>      
+
+      <svg id="countdowntimer_svg">
+         <circle id="countdowntimer" display="none" r="10" cx="20" cy="20"></circle>         
+         <text id="countdownnumber" x="20" y="24"></text> 
+      </svg>
+      <img id="imageHideable" src="">
+      <img id="imageComments" src="">
+      
+      <div id='debugInfo'>
+         <table>      
+            <tr>               
+               <td  align="center" colspan="6" id='picframeuptime'><p></p></div></td>               
+            </tr>        
+            <tr>               
+               <td><div id='helptxt'><p></p></div></td>
+               <td><div id='ImagesinDB'><p></p></div></td>
+               <td><div id='imagelocation'><p></p></div></td>
+            </tr>
+         </table>
+      </div>            
+   </body>    
+   <script type="text/javascript" src="../common/requireModule.js"></script>   
+   <script type='text/javascript' src='../common/DBFunctions.js'></script>
+   <script type='text/javascript' src='../common/videoUtility.js'></script>   
+   <script type='text/javascript' src='display.js'></script>        
+
+
+   <script>      
+
+      var fadetoggle = 0; // determines which image is currently faiding in or out      
+      var imgctr = 0;  // count of which image in g_Base64Images is currently displayed
+      var g_Base64Images = []; // loaded images and videos in base64 for direct display, populated from display.js
+      //var LoadedImages = []; //array of images directories for display during debug, populated from display.js      
+      var LoadedImagesData = []; //array of images directories for display during debug, populated from display.js
+      var g_playpause = 1; // 0 paused, 1 playing         
+      let videoloopdone = true;  //used to determine if video is has looped playing
+      let VideoLoopTimer = null;  // timer to check if video has looped
+      let videoVolume = 0; // tracks video sound level      
+          
+   // Function to get the current date and time in a specific format
+   function getCurrentDateTime() {
+      const now = new Date();
+      const formatDatePart = (part) => String(part).padStart(2, '0');
+
+      // Format the directory name as YYYYMMDD_HHMMSS
+      return `${now.getFullYear()}${formatDatePart(now.getMonth() + 1)}${formatDatePart(now.getDate())}_` +
+        `${formatDatePart(now.getHours())}${formatDatePart(now.getMinutes())}${formatDatePart(now.getSeconds())}`;
+   }
+
+
+   document.querySelectorAll(".mainimg").forEach(img => {
+      img.addEventListener('error', function(event) {
+         // writeRotateDeleteError(null, null, "display error " + LoadedImages[imgctr]);
+         writeRotateDeleteError(null, null, "display error " + LoadedImagesData[imgctr].FilePath);
+        ipcRenderer.send('resetdisplaywindow', "");         
+       });
+   });
+
+      // Listen for 'displayWatchdog'from main.js and respond.  Tests if display.html is working or hungup
+      ipcRenderer.on('displayWatchdogRequest', (event, arg) => {           
+        ipcRenderer.send('displayWatchdogResponse', true);
+      });
+
+      // return mute and play status to appMain.html
+   ipcRenderer.on('GetMutePlay', (event, arg) => {                  
+      const responseData = { 
+         volume: document.getElementById('playvideo').volume,
+         playstate: g_playpause 
+      };         
+      ipcRenderer.send('GetMutePlayResponse', responseData);
+   });
+
+   // return hidden image status to appMain.html
+   ipcRenderer.on('AppGetCurrentDisplayImageData', (event, arg) => {        
+         switch (arg.data.closepage.done){
+         case 0: // page is opened 
+            if (g_playpause == 1){ // 0 paused, 1 playing               
+               document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'p'}));
+            }
+            if (imgctr == 0){                                        
+               ImagePath= LoadedImagesData[imgctr].FilePath;
+               IsHidden = LoadedImagesData[imgctr].HiddenFlag;
+               ImgComments = LoadedImagesData[imgctr].Comments;
+            }else{                            
+               ImagePath= LoadedImagesData[imgctr-1].FilePath
+               IsHidden = LoadedImagesData[imgctr-1].HiddenFlag;
+               ImgComments = LoadedImagesData[imgctr-1].Comments;
+            }         
+            const responseData = {
+               ImagePath: ImagePath, // String: Path of the current image
+               dbEXIFHiddenImages: IsHidden, 
+               dbEXIFImageComments: ImgComments
+            };
+            // Send the response back to the main process, where it is sent to appServer.html and then call app.html page                     
+            ipcRenderer.send('AppGetCurrentDisplayImageDataResponse', responseData);
+         break;
+         case 1:
+            if (g_playpause == 0){ // 0 paused, 1 playing         
+               document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'p'}));
+            }
+         break;
+      }
+   });
+   
+
+   async function initialize(){    
+      readDataBase(); // reads data from DBFunctions.js                    
+      copy_and_display();          
+   };
+
+   
+   let displayImg = null; // used for zoom function
+   let zoomBoundingBox = null; // used for zoom function
+   let zoomlensExited = false; // if multiple users have zoom open, need to track when one closes to remove zoomlens   
+   ipcRenderer.on('ZoomLocation', (event, arg) => {                                    
+      switch (arg.closepage.done){
+         case 0: // page is opened 
+            zoomlensExited = false; // page is opened, zoom timeout is not active
+            if (g_playpause == 1){ // 0 paused, 1 playing               
+               document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'p'}));               
+            }
+            let imgctr2 = (imgctr === 0) ? 0 : imgctr - 1;                                  
+            if (LoadedImagesData[imgctr2].FilePath.endsWith('.mp4')) { // test if its an mp4                
+                document.getElementById('videoLens').src = document.getElementById('playvideo').src; // attach current video
+                let zoomBox = document.getElementById('playvideo').getBoundingClientRect();
+                Object.assign(document.getElementById('videoLens').style, { // scale and position image
+                    position: 'absolute', // Ensure it's positioned absolutely like the original video
+                    width: zoomBox.width + 'px',
+                    height: zoomBox.height + 'px',
+                    transform: 'translate(0, 0)'
+                });
+                document.getElementById('videoLens').play();
+                document.getElementById('videoLens').currentTime = document.getElementById('playvideo').currentTime; // synch zoom and display videos 
+            } else { // its an image
+               displayImg = (!fadetoggle) ? document.getElementById('mainimg') : document.getElementById('mainimg2');
+                document.getElementById('imgLens').src = displayImg.src; // attach the current image
+               let zoomBox = displayImg.getBoundingClientRect();
+               Object.assign(document.getElementById('imgLens').style, { // scale and position image
+                  position: 'absolute', // Ensure it's positioned absolutely like the original video
+                  width: zoomBox.width + 'px',
+                  height: zoomBox.height + 'px',
+                  transform: 'translate(0, 0)'
+               });               
+            }                                  
+         break;
+         case 1: // page is sending valid move information
+            if (!zoomlensExited){
+               //zoomlensTimer.reset(5000); //starts or resets the timer as needed                  
+               if (document.getElementById('videoLens').src){ 
+                  zoomBoundingBox = document.getElementById('playvideo').getBoundingClientRect();//its a video                       
+                  let imgtransx = zoomBoundingBox.left  - 150 + arg.data.xpos * (zoomBoundingBox.width / arg.window.winw);
+                  let imgtransy = zoomBoundingBox.y - 150 + arg.data.ypos * (zoomBoundingBox.height / arg.window.winh); 
+                  // Calculate the offset to align videoLens with zoomLens movement
+                  let videoOffsetX = (imgtransx - zoomBoundingBox.left);
+                  let videoOffsetY = (imgtransy - zoomBoundingBox.top );
+                  
+                  // actual video height and width
+                  let initialWidth = document.getElementById('videoLens').videoWidth;  
+                  let initialHeight = document.getElementById('videoLens').videoHeight;  
+
+                  // Get the current size of the #videoLens element including any resizing
+                  let currentWidth = document.getElementById('videoLens').offsetWidth;
+                  let currentHeight = document.getElementById('videoLens').offsetHeight;
+
+                  // Calculate the resize ratio (current size compared to initial size)
+                  let widthRatio = currentWidth / initialWidth;
+                  let heightRatio = currentHeight / initialHeight;
+
+                  // Calculate an average resize ratio (you can also decide to use just one axis)
+                  let resizeRatio = (widthRatio + heightRatio) / 2;                
+                  let zoomratio = (arg.zoom.zoomlevel === 1) 
+                     ? (resizeRatio > 1 ? 2 : 1.5)
+                     : (resizeRatio > 1 ? 2.5 : 2);
+
+                  document.getElementById('zoomlens').style.transform = 'scale('+ zoomratio +')';  
+                  
+                  Object.assign(document.getElementById('zoomlens').style, {left: `${imgtransx}px`, top: `${imgtransy}px` });
+                  
+                  document.getElementById('videoLens').style.transform = `translate(-${videoOffsetX}px, -${videoOffsetY}px)`;                              
+
+               }else{ //its an image      
+                  zoomBoundingBox = displayImg.getBoundingClientRect();                                                                   
+                  let imgtransx = zoomBoundingBox.left  - 150 + arg.data.xpos * (zoomBoundingBox.width / arg.window.winw);
+                  let imgtransy = zoomBoundingBox.y - 150 + arg.data.ypos * (zoomBoundingBox.height / arg.window.winh);   
+                  // Calculate the offset to align videoLens with zoomLens movement
+                  let imgOffsetX = (imgtransx - zoomBoundingBox.left);
+                  let imgOffsetY = (imgtransy - zoomBoundingBox.top );
+
+                  // actual video height and width
+                  let initialWidth = document.getElementById('imgLens').naturalWidth;  
+                  let initialHeight = document.getElementById('imgLens').naturalHeight;  
+
+                  // Get the current size of the #videoLens element including any resizing
+                  let currentWidth = document.getElementById('imgLens').offsetWidth;
+                  let currentHeight = document.getElementById('imgLens').offsetHeight;
+
+                  // Calculate the resize ratio (current size compared to initial size)
+                  let widthRatio = currentWidth / initialWidth;
+                  let heightRatio = currentHeight / initialHeight;
+
+                  // Calculate an average resize ratio (you can also decide to use just one axis)
+                  let resizeRatio = (widthRatio + heightRatio) / 2;                                
+                  let zoomratio = (arg.zoom.zoomlevel === 1) 
+                     ? (resizeRatio > 1 ? 2 : 1.5)
+                     : (resizeRatio > 1 ? 2.5 : 2);
+
+                  document.getElementById('zoomlens').style.transform = 'scale('+ zoomratio +')';  
+
+                  Object.assign(document.getElementById('zoomlens').style, {left: `${imgtransx}px`, top: `${imgtransy}px` });
+
+                  document.getElementById('imgLens').style.transform = `translate(-${imgOffsetX}px, -${imgOffsetY}px)`;               
+               }
+               document.getElementById('zoomlens').style.display = 'block';   
+         }         
+         break;
+         case 2:
+            zoomlensExited = true; // page is closed,      
+            document.getElementById('zoomlens').style.display = 'none';           
+            document.getElementById("imgLens").removeAttribute("src");
+            document.getElementById("imgLens").removeAttribute("style");     
+            document.getElementById("videoLens").removeAttribute("src");
+            document.getElementById("videoLens").removeAttribute("style");     
+            document.getElementById("videoLens").loop = true;  // Ensure loop is still enabled
+            document.getElementById("videoLens").muted = true; // Ensure muted is still enabled
+            document.getElementById("videoLens").load(); // Reload video to apply changes
+
+            if (g_playpause == 0){ // 0 paused, 1 playing         
+               document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'p'}));
+            }
+         break;
+      }
+   });
+
+   // failure during rebuild database, so display failed icon
+   ipcRenderer.on('dbrebuildfailure', (event, arg) => {   
+      document.getElementById("databaseError").style.content = './assets/images/database_error.png';
+   });
+
+
+    ipcRenderer.on('PicFrameUptime', (event, arg) => {          
+      document.getElementById("picframeuptime").innerHTML = "Uptime: " + arg.ut_days.toString() + " days " + arg.ut_hours.toString() + " hours " + arg.ut_mins.toString() + " mins " + arg.ut_secs.toString() + " secs ";      
+      setTimeout(function(){                    
+         document.getElementById("picframeuptime").innerHTML = " ";          
+      },15000); 
+    });
+
+    ipcRenderer.on('appInfo', (event, arg) => {  // pass data from appServer to control the current slideshow            
+      var AppData = arg.data;
+      var AppCommand = arg.command;       
+      switch (AppCommand){
+         case 'volume':                    
+            videoVolume = AppData;
+            document.getElementById('playvideo').volume = AppData;
+         break;
+         case 'direction':
+            switch (AppData){
+               case 'play':
+               case 'pause':
+                  document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'p'}));
+               break;
+               case 'next':
+                  document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'n'}));
+               break;
+               case 'back':
+                  document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'b'}));  
+               break;
+               default:
+            }
+         break;
+         case 'information':
+            switch(AppData){
+               case 'location':
+                  document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'l'}));
+               break;
+               case 'data':
+                  document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'd'}));
+               break;
+               case 'qrcode':
+                  document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'q'}));
+               break;
+               default:
+            }
+         break;
+         case 'filectrl':
+            switch(AppData){
+               case 'rotate':
+                document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'r'}));
+               break;
+               case 'delete':
+                  document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'e'}));
+               break;
+               default:
+            }
+         break;         
+         default:         
+      }
+    })
+
+
+   var dbg = true;
+   document.addEventListener("keydown", event => {    
+        switch (event.key) {
+            case "Escape":                       
+                ipcRenderer.send('close_image_window', '');
+            break;
+            case "n":                                                 
+               forward_back('forward');
+            break;
+            case "p":                 
+               if (g_playpause == 0){ // 0 paused, 1 playing
+                  g_playpause = 1;
+                  SetUIimageorData('#pause', true, null);                                    
+               }else{
+                  g_playpause = 0;                  
+                  SetUIimageorData('#pause', false, './assets/images/app pause.png');                  
+               }  
+            break;                
+            case "b":             
+               forward_back('back');        
+            break;
+            case "h":
+               helptext = "Escape/F11, play, stop, resume, rewind, go back, back, skip, next, help, mute, unmute, metrics, location, delete [when paused], rotate [when paused], qr code, web app";       
+               SetUIimageorData('#helptxt', false, helptext)           
+            break;
+            case "m":            
+               document.getElementById('playvideo').volume = 0;               
+            break;
+            case "u":
+               document.getElementById('playvideo').volume = 0.5;                              
+            break;
+            case "e": // mark file for deletion
+               if (g_playpause == 0){     // only rotate image if paused    
+                  if (imgctr == 0){                              
+                     imgMarkedDelete= LoadedImagesData[imgctr].FilePath
+                  }else{                  
+                     imgMarkedDelete= LoadedImagesData[imgctr-1].FilePath
+                  } 
+                  writeRotateDeleteError(null, imgMarkedDelete, null); 
+                  SetUIimageorData('#noRotation', false, './assets/images/deleteimage.png');
+                  setTimeout(function(){    
+                     SetUIimageorData('#noRotation', true, null);
+                  },1500);    
+               }
+            break;
+            case "r": //rotate image if paused               
+               if (g_playpause == 0){                  
+                  let currentImage = getImagetoSee();                     
+                  fileExt = (currentImage.imagePath.substring(currentImage.imagePath.lastIndexOf(".")+1)).toLowerCase();  
+                  if (fileExt == 'mp4'){
+                     rotateMP4(currentImage);
+                  }else{
+                     rotateImage(90, currentImage);
+                  }  
+               }
+                
+            break;
+            case "l":  // location diretory of displayed image
+               SetUIimageorData('#LoadedImages', true, null); // clear out the div for the location of the image
+               if (imgctr == 0){                                    
+                  var imgLocation = LoadedImagesData[imgctr].FilePath.substring(0, LoadedImagesData[imgctr].FilePath.lastIndexOf("\\"));                       
+                  SetUIimageorData('#imagelocation', false, imgLocation);  
+                  if (LoadedImagesData[imgctr].Comments !== null){                      
+                     const formattedComments = LoadedImagesData[imgctr].Comments.replace(/\n/g, '<br>');                     
+                     SetUIimageorData('#LoadedImages', false, formattedComments);
+                  }
+               } else{                                                                    
+                  var imgLocation = LoadedImagesData[imgctr-1].FilePath.substring(0, LoadedImagesData[imgctr-1].FilePath.lastIndexOf("\\"));                  
+                  SetUIimageorData('#imagelocation', false, imgLocation);
+                  if (LoadedImagesData[imgctr-1].Comments !== null){                      
+                     const formattedComments = LoadedImagesData[imgctr-1].Comments.replace(/\n/g, '<br>');                     
+                     SetUIimageorData('#LoadedImages', false, formattedComments);
+                  }                           
+               }                               
+            break;
+            case "d": //data on loaded images                  
+               ipcRenderer.send('Get_PicFrameUptime',true);   // get pictureframe uptime from main.js  
+               const ImageStats = db.prepare('SELECT COUNT(*) AS TotalDir, SUM(CASE WHEN Selected = 1 THEN 1 ELSE 0 END) AS SelDir FROM '+ g_selPLAYLIST).get();                              
+               imgStats = "Total Images: "+ImageStats.TotalDir+" Used Images: "+ImageStats.SelDir ;
+               SetUIimageorData('#ImagesinDB', false, imgStats)
+               /// remove duplicate directories
+                //let uniqueDirs = [...new Set(LoadedImages)];
+                //let uniqueDirs = [...new Set(LoadedImagesData.map(data => data.FilePath))];
+               const LoadedFilepaths = LoadedImagesData.map(img => img.FilePath);
+               var dirStats = "<li>" + LoadedFilepaths.join("</li><li>") + "</li>";
+               SetUIimageorData('#LoadedImages', false, dirStats);
+            break;
+        }
+    });
+
+
+   var fadeInOut = 500;  // timer for fadeing in and out main and background images
+   var imagetosee;
+   let displaylooptimer;
+   var loopdelay = 2000;  // default delay that is overwritten by databse delay.  default/first is low in case user delay is in the minutes
+   var firstloop = true;  // set when display images runs the first time to enable things correctly
+
+
+     
+
+    // copies images to images directory and then loops through displaying images
+   async function copy_and_display(){ 
+                                        
+      SetUIimageorData('#readingimages', false, './assets/images/copyfiles.png')        
+      await copy_images(); // first run of copy images from server when program starts      
+     // setTimeout(() => { 
+         SetUIimageorData('#readingimages', true, null)      
+      //}, 500);       
+
+      // create timer, runs immediately and every g_basedelay ms
+      displaylooptimer = new Timer(function () {
+         if (g_playpause == 1 && videoloopdone == true) {            
+            check_imgctr_for_reset();            
+         }
+      }, g_basedelay);
+   } 
+
+   async function check_imgctr_for_reset(){   
+      /*  
+      try{  // in case the images are still loading data we need to skip loading or processessing next image button presses         
+         displayimages();                         
+      }catch(err){
+         return;
+      }
+      imgctr++; // update image counter now that images are displayed   
+      */
+      
+      //if (imgctr >= g_Base64Images.length){  
+      if (imgctr >= g_Base64Images.length){  
+      
+         let timePause = isCurrentTimeInRange(g_startPauseTime, g_stopPauseTime);         
+         if (timePause){            
+            SetUIimageorData('#IntervalPause', false, './assets/images/intervalpause.png');
+         }else{                        
+            SetUIimageorData('#IntervalPause', true, null);
+            // delay added to make sure last image is loaded on web page before deletion  This is usually just an issue with video as they take a while to get background image
+            // possibly update for image loaded wait.           
+            SetUIimageorData('#readingimages', false, './assets/images/copyfiles.png');                            
+            await copy_images();                
+            SetUIimageorData('#readingimages', true, null);                               
+         }         
+         imgctr = 0;
+      }      
+      try{  // in case the images are still loading data we need to skip loading or processessing next image button presses         
+         displayimages();                         
+      }catch(err){
+         return;
+      }
+      imgctr++; // update image counter now that images are displayed                              
+      
+   }
+
+   function displayimages() {    
+      if (firstloop) {                  
+         document.getElementById("countdowntimer").removeAttribute("display"); //show timer element.         
+         firstloop = false;
+      }
+      
+      document.getElementById("countdowntimer").style.animation = "none";
+      setTimeout(function() {
+            document.getElementById("countdowntimer").style.animation = "countdown " + g_basedelay/1000 +"s linear infinite forwards";
+      }, 20); //need a small delay for the reset to take
+      
+
+      if (VideoLoopTimer != null) {      
+         VideoLoopTimer.stop(); // stop the video loop timer if it is running
+      }   
+      videoloopdone = true; // reset videoloopdone to true so that the video loop timer is reset   
+
+      if (g_Base64Images.length - imgctr < 0){
+         document.getElementById("countdownnumber").textContent = 1; //update the countdown number in the circle svg      
+      }else{
+         document.getElementById("countdownnumber").textContent = g_Base64Images.length - imgctr; //update the countdown number in the circle svg      
+      }
+      
+
+      try { // try exists in case the user is press the next image button but loadedimagesdata is still populating so there is a race condition
+         if (LoadedImagesData[imgctr].HiddenFlag){  // show image hideable icon if image can be hidden
+            SetUIimageorData("#imageHideable", false, './assets/images/app hide.png');
+         }else{
+            SetUIimageorData("#imageHideable", true, null);
+         }
+      } catch (err){      
+         throw err;      
+      }
+      
+      
+      if (LoadedImagesData[imgctr].Comments !== null){  // show image hideable icon if image can be hidden
+         SetUIimageorData("#imageComments", false, './assets/images/imgcomments.png');
+      }else{
+         SetUIimageorData("#imageComments", true, null);
+      }
+      
+      imagetosee = g_Base64Images[imgctr];        
+
+      if (imagetosee.includes("video")) {
+         // get an image from the video to set as the background            
+         getVideoImage(imagetosee, 2, function(img, event) {
+            SetVideoScaleStyleAttr(imagetosee);
+            if (event.type == 'error') {             
+               document.getElementById("bg_img").setAttribute("src", './assets/images/null.png');
+               document.getElementById("bg_img2").setAttribute("src", './assets/images/null.png');                                                                  
+            } else {
+               // set background image and reset all rotations since the captured image from the video does not have an orientation
+               if (fadetoggle == 0) {
+                  document.getElementById("bg_img2").setAttribute("style", "transform: translate(0%, 0%) rotate(0deg) scale(1); max-width: none");
+                  document.getElementById("bg_img2").setAttribute("src", img.src);
+                  fadeIn(document.getElementById("bg_img2"), fadeInOut);
+                  fadeOut(document.getElementById("bg_img"), fadeInOut);
+                  fadetoggle = 1;
+               } else {
+                  document.getElementById("bg_img").setAttribute("style", "transform: translate(0%, 0%) rotate(0deg) scale(1); max-width: none");
+                  document.getElementById("bg_img").setAttribute("src", img.src);
+                  fadeIn(document.getElementById("bg_img"), fadeInOut);
+                  fadeOut(document.getElementById("bg_img2"), fadeInOut);
+                  fadetoggle = 0;
+               }                                                 
+            }
+            // set the displayed main image to black
+            fadeOut(document.getElementById("mainimg"), fadeInOut);
+            fadeOut(document.getElementById("mainimg2"), fadeInOut);
+            document.getElementById('playvideo').style.opacity = '0';
+            document.getElementById("playvideo").setAttribute("src", imagetosee);    
+            document.getElementById("playvideo").play().catch(err => {
+               if (err.name !== "AbortError") {
+                  // do nothing, ignore error and continue
+               }
+            });            
+            //document.getElementById("playvideo").play(); 
+            document.getElementById("playvideo").hidden = false; 
+            fadeTo(document.getElementById("playvideo"), fadeInOut, 1);
+            document.getElementById("playvideo").loop = true; 
+            // get duration and set a timer to reset the image counter when the video loops
+            try{     
+               document.getElementById('playvideo').onloadedmetadata = function() {
+                  videolength = document.getElementById('playvideo').duration;
+                  // add here for smaller videos so we dont play sound     
+                  if (videolength < 10){  // initially disable sound for videos shorter than 10 seconds
+                     document.getElementById('playvideo').volume = 0;
+                  }else{
+                     document.getElementById('playvideo').volume = videoVolume; // set volume to the current video volume
+                  }               
+                  videoloopdone = false;
+                  VideoLoopTimer = new OneShotTimer(() => {                  
+                     videoloopdone = true; 
+                     VideoLoopTimer = null;   // cleanup after execution                     
+                  }, videolength * 1000);               
+               };                                                 
+            }catch(err){
+               videoloopdone = true; // if there is an error, set videoloopdone to true so that the image counter is reset
+            }         
+         });
+         // set sound to mute (0) for any newly loaded image.  I don't want sound properties to carry over
+         //document.getElementById('playvideo').volume = 0;   
+
+      } else { //selection is image        
+
+         SetImageScaleStyleAttr(imagetosee,fadetoggle);                        
+         if (fadetoggle == 0) {                    
+            document.getElementById("mainimg2").setAttribute("src", imagetosee);
+            document.getElementById("bg_img2").setAttribute("src", imagetosee);
+         
+            fadeIn(document.getElementById("mainimg2"), fadeInOut);
+            fadeIn(document.getElementById("bg_img2"), fadeInOut);
+            fadeOut(document.getElementById("mainimg"), fadeInOut);
+            fadeOut(document.getElementById("bg_img"), fadeInOut);
+            fadeTo(document.getElementById("playvideo"), fadeInOut, 0);
+            document.getElementById("playvideo").hidden = true;
+            document.getElementById("playvideo").setAttribute("src", "");                          
+            fadetoggle = 1;
+         } else {                    
+            document.getElementById("mainimg").setAttribute("src", imagetosee);
+            document.getElementById("bg_img").setAttribute("src", imagetosee);
+
+            fadeIn(document.getElementById("mainimg"), fadeInOut);
+            fadeIn(document.getElementById("bg_img"), fadeInOut);
+            fadeOut(document.getElementById("mainimg2"), fadeInOut);
+            fadeOut(document.getElementById("bg_img2"), fadeInOut);
+            fadeTo(document.getElementById("playvideo"), fadeInOut, 0);
+            document.getElementById("playvideo").hidden = true;
+            document.getElementById("playvideo").setAttribute("src", "");               
+            fadetoggle = 0;
+         }
+      }       
+   }
+   
+
+
+   // Helper functions for fade in, fade out, and fade to
+   function fadeIn(element, duration) {
+      element.style.transition = `opacity ${duration}ms`;
+      element.style.opacity = 1;
+   }
+
+   function fadeOut(element, duration) {
+      element.style.transition = `opacity ${duration}ms`;
+      element.style.opacity = 0;
+   }
+
+   function fadeTo(element, duration, opacity) {
+      element.style.transition = `opacity ${duration}ms`;
+      element.style.opacity = opacity;
+   }
+
+   function isCurrentTimeInRange(startTime, stopTime) {
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      const parseTime = (timeStr) => {
+         const [hours, minutes] = timeStr.split(':').map(Number);
+         return hours * 60 + minutes; // Convert to total minutes
+      };
+
+      let startMinutes = parseTime(startTime);
+      let stopMinutes = parseTime(stopTime);
+
+      // Handle cases where stopTime is past midnight
+      if (stopMinutes < startMinutes) {
+         return currentMinutes >= startMinutes || currentMinutes < stopMinutes;
+      }
+      return currentMinutes >= startMinutes && currentMinutes < stopMinutes;
+   }
+   </script>
+
+</html>

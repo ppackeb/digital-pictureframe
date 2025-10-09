@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Digital PictureFrame</title>
+    <style>
+
+    </style>
+    <link rel='stylesheet' href='./index.css'>
+    <link rel="icon" type="image/x-icon" href="/res/favicon.ico">  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  </head>
+
+  <body onload='initialize()'>
+
+    <div class="tab-container">
+      <div class="tab" onclick="openTab('tab1', this)">Configuration Settings</div> 
+      <div class="tab" onclick="openTab('tab2', this)">Playlists</div>
+      <div class="tab" onclick="openTab('tab3', this)">Notifications</div>
+    </div>
+
+    <div class="content" id="tab1" style="border: 1px solid rgb(185, 185, 185)">
+      <div style="padding:5px 0px 5px 5px" ><!-- start tab1 data --><!-- top, right, bottom, left -->
+        <strong>Current Playlist</strong>
+        <br> 
+        <select id="playlist_name"></select>
+        <button id ="startshow" name="startshow" onclick="StartShow()">Start Playlist</button>
+        <p>
+        <strong>Item Display Time</strong>
+        <br>
+        <select id="baseDELAY" name="baseDELAY" >                                                
+          <option value="2000">2 seconds</option>
+          <option value="5000">5 seconds</option>
+          <option value="10000">10 seconds</option>
+          <option value="15000">15 seconds</option>
+          <option value="20000">20 seconds</option>
+          <option value="30000">30 seconds</option>
+        </select>
+        <p>
+        <strong>Items to Queue</strong>
+        <br>
+        <select id="preloadNUM" name="preloadNUM" onchange ='prefetchcheck()' >
+          <option value="1">1 </option>  
+          <option value="5">5 </option>  
+          <option value="10">10 </option>
+          <option value="20">20 </option>
+          <option value="30">30 </option>        
+        </select>
+        <p>
+        <strong>Items per Folder to Queue</strong>
+        <br>   
+        <select id="prefetchNUM" name="prefetchNUM" onchange ='prefetchcheck()' >
+          <option value="1">1 </option>        
+          <option value="5">5 </option>
+          <option value="10">10 </option>        
+        </select>
+        <p>
+        <strong>Top Item Folder</strong>
+        <br>
+        <input type="text" id="AppStartDirectory" name="AppStartDirectory" readonly  style="width: 300px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;"/>
+        <p>
+        <strong>Pause loading new images between these times</strong>
+        <br>
+        <label for="StartTime">Start</label>
+        <select id="StartTime" style="width:80px"></select>
+        <label for="StopTime">Stop</label>
+        <select id="StopTime" style="width:80px"></select>
+        <p>
+        <input type="checkbox" id="nightlybuild" name="nightlyrebuild">
+        <strong>Refresh playlists and item edits nightly</strong>
+        <button id ="refreshAllDB" name="refreshAllDB" style="width:120px;" onclick="refreshAllDB()">Refresh Now</button>
+        <p>
+        <strong>Open Port for Web Browser Application</strong>
+        <br>
+        <input type="text" id="appPort" name="appPort" style="width: 40px"/>
+        <table style="table-layout: fixed; width: 400px;">
+          <colgroup>
+            <col style="width: 50%;">
+            <col style="width: 50%;">
+          </colgroup>            
+          <tr>
+            <th style="text-align:center">Local IPv6</th>
+            <th style="text-align:center">Local IPv4</th>
+          </tr>
+          <tr style=" background-color: unset;">
+            <td style="text-align:center" ><div id = "labelipv6"></div></td>            
+            <td style="text-align:center" ><div id = "labelipv4"></div></td>
+          </tr>
+          <tr>
+            <td><center><div id="qrcodeipv6" ></div></center></td>       
+            <td><center><div id="qrcodeipv4" ></div></center></td>
+          </tr>    
+        </table>
+      </div><!--end tab1 data-->
+    </div><!--end tab1 -->
+    
+    
+<div class="content" id="tab2" style="display:none;"> <!-- start tab2 -->
+  
+  <!-- Header Row -->
+  <div class="playlist-header">
+    <div class="header-cell left" ><strong>Playlists</strong></div>
+    <div class="header-cell right" ><strong id="playlistActionText">Edit Playlist</strong></div>
+  </div>
+
+  <!-- Main Frame: Left & Right Panels -->
+  <div style="display: flex; align-items: stretch; height: calc(90% - 35px); gap: 10px;">
+    <!-- Left Section -->
+    <div class="left-frame">
+      <div id="PlaylistTableSettings">
+        <table id="playlistTable">
+          <tbody>
+            <!-- Rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+    </div> <!-- ends left section -->
+
+    <!-- Right Section -->
+    <div class="right-frame"> <!-- starts the right section -->
+
+      <strong>Name</strong><br>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="selectedPlaylist" name="selectedPlaylist" />
+        <input type="image" id="PlaylistNameInfo" name="PlaylistNameInfo" src="./assets/images/app help.png" class="help-icon" onclick="GetHelpPlaylistNames()">
+      </div>
+      <br>
+
+      <div id="FolderTableSettings">
+        <div style="display: flex; gap: 8px;">
+          <strong>Folders</strong>
+          <input type="image" id="FolderTableInfo" name="FolderTableInfo" src="./assets/images/app help.png" class="help-icon" onclick="GetHelpFolderTable()">
+        </div>
+        <table id="FolderTable">
+          <tbody>
+            <!-- Rows will be inserted here -->
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        <strong>Use Folders with Keywords</strong><br>
+        <input type="text" id="IncludeKeywords" name="IncludeKeywords" placeholder="(optional)" />
+        <input type="image" id="IncludeKeywordsInfo" name="IncludeKeywordsInfo" src="./assets/images/app help.png" class="help-icon" onclick="GetHelpIncludeKeywords()">
+        <br><br>
+
+        <strong>Do Not Use Folders with Keywords</strong><br>
+        <input type="text" id="ExcludeKeywords" name="ExcludeKeywords" placeholder="(optional)" />
+        <input type="image" id="ExcludeKeywordsInfo" name="ExcludeKeywordsInfo" src="./assets/images/app help.png" class="help-icon" onclick="GetHelpExcludeKeywords()">        
+      </p>
+
+    </div> <!-- ends right section -->
+  </div> <!-- end of FRAME -->      
+
+  <!-- Button Box Under the Flex Section -->
+  <div class="button-box">
+    <div class="button-cell left">
+      <button id="createPlaylist" name="createPlaylist">Create</button>
+    </div>
+    <div class="button-cell right">
+      <button id="savePlaylist"  disabled name="savePlaylist" >Save</button>
+      <button id="deletePlaylist" name="deletePlaylist">Delete</button>
+      <button id="cancelPlaylist" disabled name="cancelPlaylist">Cancel</button>
+    </div>
+  </div>
+
+  </div> <!-- end tab2 -->
+
+  <!-- start tab3 div-->
+  <div class="content" id="tab3" style="display:none; padding:0px; border: 1px solid rgb(185, 185, 185)">
+    <div id="NotificationTableSettings">
+      <table  id="notifications"> </table>
+    </div>
+    <br>
+    <div style="text-align: center; margin-top: -5px;">
+      <center><button id="clearNotifications" name="clearNotifications" onclick="ClearNotificaitonsTable()">Clear All</button></center>
+    </div>
+  </div><!--end tab3 div-->
+
+  <!--custom modal for info popups-->
+  <!-- Modal Backdrop (blocks UI behind modal) -->
+  <div id="modalBackdrop" style="display: none; position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.5);
+      z-index: 999;"></div>
+
+  <!-- Modal Box -->
+  <div id="customAlert" style="display:none; position:fixed; top:30%; left:50%;
+      transform:translate(-50%, -50%); background:white; border:1px solid #888;
+      padding:20px; z-index:1000; box-shadow: 2px 2px 10px gray;">
+    <p id="customAlertMessage"></p>
+    <center>
+      <button id="okBtn" onclick="OKalert()">OK</button>
+      <button id="cancelBtn" onclick="Cancelalert()">Cancel</button>
+    </center>
+  </div>
+  
+  <script type="text/javascript" src="../common/requireModule.js"></script>
+  <script type="text/javascript" src="../common/DBFunctions.js"></script>  
+  <script type="text/javascript" src="../common/qrcode.js"></script>
+
+
+<script>
+
+
+  let playlistnames = null; // all playlists names in db format
+  let lastAppPortValue = ""; // Track last saved value used to dynamically build  QR code as port changes
+  let uiDirty = false; // Track if UI has changed and needs to be saved    
+  const trackInputs = ['playlist_name', 'baseDELAY', 'preloadNUM', 'prefetchNUM','StartTime', 'StopTime', 'AppStartDirectory','nightlybuild','appPort', 'refreshAllDB', 'startshow'];
+  let PlaylistStatusFlag = ""; //create, edit, ""  
+
+  let qrcodeipv6 = new QRCode(document.getElementById("qrcodeipv6"), {width : 100, height : 100}); // call QRCode in qrcode.js to build the object
+  let qrcodeipv4 = new QRCode(document.getElementById("qrcodeipv4"), {width : 100, height : 100}); // call QRCode in qrcode.js to build the object
+
+  // Event listeners for time dropdowns
+  document.getElementById("StartTime").addEventListener("click", handleTimeChange);
+  document.getElementById("StopTime").addEventListener("click", handleTimeChange);    
+
+  /*
+  //
+  //
+  //
+  Section for custom alert models
+  //
+  //
+  //
+  */
+  function ShowAlert(message, showCancel = true) {
+    return new Promise((resolve) => {
+      document.getElementById('customAlertMessage').innerText = message;
+      document.getElementById('customAlert').style.display = 'block';
+      document.getElementById('modalBackdrop').style.display = 'block';
+
+      // Show or hide the Cancel button
+      const cancelBtn = document.getElementById('cancelBtn');
+      cancelBtn.style.display = showCancel ? 'inline-block' : 'none';
+
+      // Wire up button actions
+      document.getElementById('okBtn').onclick = () => {
+        CloseAlert();
+        resolve("ok");
+      };
+
+      cancelBtn.onclick = () => {
+        CloseAlert();
+        resolve("cancel");
+      };
+    });
+  }
+
+  function CloseAlert() {
+    document.getElementById('customAlert').style.display = 'none';
+    document.getElementById('modalBackdrop').style.display = 'none';
+  }
+
+  /*
+  //
+  // tab management and initialization
+  //
+  */
+  function openTab(tabId, tabElement = null) {       
+    if (document.getElementById('cancelPlaylist').disabled == false){
+      ShowAlert("You must save or cancel playlists changes", false).then((result) => {      
+      });
+      return;
+    }
+      document.querySelectorAll('.content').forEach(div => div.style.display = 'none');// Hide all contents
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active')); // Remove active class from all tabs
+    document.getElementById(tabId).style.display = 'block';// Show selected content
+    // Add active class to clicked tab, if called from click event
+    if (tabElement) {
+      tabElement.classList.add('active');
+    }
+    readUI();
+    writeUI();
+  }
+
+  trackInputs.forEach(id => {    // check if UI is updated and save if needed
+    const el = document.getElementById(id);
+    if (!el) return;
+    const markUIDirty = () => { 
+      readUI();   // read UI state
+      writeUI();  // write it to a file or storage      
+    };
+    // Attach all relevant event listeners
+    el.addEventListener('input', markUIDirty);
+    el.addEventListener('click', markUIDirty);
+    el.addEventListener('change', markUIDirty);
+    el.addEventListener('valuechanged', markUIDirty); // For custom event dispatches
+  });
+
+  async function initialize(){    
+    await writeUI();// put all data UI
+    rebuildIndexTimer(); //starts timer to rebuild playlists at midnight 
+    openTab('tab1', document.querySelector('.tab'));
+  }
+
+    async function readUI(){
+    // table configuration settings
+    g_prefetchNUM = document.getElementById('prefetchNUM').value;
+    g_selPLAYLIST = document.getElementById('playlist_name').value;
+    g_preloadNUM = document.getElementById('preloadNUM').value;
+    g_basedelay = document.getElementById('baseDELAY').value;
+    g_appStartDir = document.getElementById('AppStartDirectory').value;
+    g_nightlyrebuild = document.getElementById("nightlybuild").checked;
+    g_startPauseTime = document.getElementById("StartTime").value;
+    g_stopPauseTime = document.getElementById("StopTime").value;
+    g_appPort = document.getElementById("appPort").value
+    writeDataBase(); // calls DBFunctions.js write function    
+  }
+
+  async function writeUI(){
+    readDataBase();// read all database information from database file    
+    //tab configuration settings
+    BuildPlaylistNameDropdown();
+    document.getElementById('baseDELAY').value = g_basedelay;
+    document.getElementById('preloadNUM').value = g_preloadNUM;
+    document.getElementById('prefetchNUM').value = g_prefetchNUM;
+    document.getElementById('AppStartDirectory').value = g_appStartDir; 
+    document.getElementById("nightlybuild").checked = g_nightlyrebuild;
+    document.getElementById('appPort').value = g_appPort;     
+    // initialize informaiton for configuration settings tab
+    lastAppPortValue = document.getElementById("appPort").value;
+    ip_local();     
+    const timeOptions = generateTimeOptions();    
+    populateTimepickerDropdown(document.getElementById("StartTime"), timeOptions);
+    populateTimepickerDropdown(document.getElementById("StopTime"), timeOptions);
+    document.getElementById("StartTime").value = g_startPauseTime;
+    document.getElementById("StopTime").value = g_stopPauseTime;
+
+    // tab notifications 
+    buildNotificationsTable();
+    // tab playlists
+    buildPlaylistTab();
+  }
+
+  // start slideeshow
+  function StartShow(){   
+    ipcRenderer.send('resetdisplaywindow',' ');
+  }
+  
+  // catch when playlist.html window is closed
+  ipcRenderer.on('action-update', (event, arg) => {
+    document.getElementById('playlist_name').innerHTML = '';
+    writeUI(); // update all UI info
+  });
+
+  // catch when display.html window is closed
+  ipcRenderer.on('resetImageWindow', (event, arg) => {
+    writeUI();// put all data UI        
+  });
+
+  // create a timer to check if it is midnight and rebuild all playlists if needed
+function rebuildIndexTimer() {
+  let lastRebuildDate = null; // track the last day we ran
+
+  const RebuildTimer = new Timer( async function() {    
+    const now = new Date();
+    const hour = now.getHours();
+    const today = now.toDateString();
+    // If midnight hour and not already run today        
+    if (g_nightlyrebuild && hour === 0 && lastRebuildDate !== today) {       
+      await rebuildall(); // your DB rebuild function  
+      lastRebuildDate = today; // set to true so only runs once each midnight hour
+    }
+  }, 180000); // check every hour (1 hour = 3600000 ms) (1/2 hr = 180000)for debugging use 60000 (1 min)
+}
+
+
+  /*
+  // create a timer to check if it is midnight and rebuild all playlists if needed
+  function rebuildIndexTimer(){  
+    var RebulidTimer = new Timer(function() {
+      var checkTime = new Date();
+      var currentTime = checkTime.getHours();     
+
+    if (currentTime == 0  && ismidnight == false && g_nightlyrebuild){
+
+        rebuildall();  // function is located in DBFunctions.js
+        ismidnight = true;
+      }else{
+        ismidnight = false;
+      }
+    },  3600000); // time in ms to determine how often to check if midnight 1 sec = 1000, 1 min = 60,000, 1hour = 3,600,000, 1.5hours = 5,400,000   
+  }
+    */
+  
+  /*
+  //
+  //
+  //
+  //
+  // tab1 functions 
+  //
+  //
+  //
+  //
+  */
+
+// generate time information for timepickers
+  function generateTimeOptions() {
+    const times = [];
+    for (let h = 0; h <= 24; h++) {
+      for (let m = 0; m < 60; m += 30) {
+        if (h === 24 && m > 0) break; // Ensure we don't go past 24:00
+        let hour = String(h).padStart(2, '0');
+        let minute = String(m).padStart(2, '0');
+        times.push(`${hour}:${minute}`);
+      }
+    }
+    return times;
+  }
+
+  function populateTimepickerDropdown(dropdown, times) {
+    dropdown.innerHTML = ""; // Clear existing options
+    times.forEach(time => {
+      let option = document.createElement("option");
+      option.value = time;
+      option.textContent = time;
+      dropdown.appendChild(option);
+    });
+  }
+
+  function getNextTime(startTime) {
+    const times = generateTimeOptions();
+    let index = times.indexOf(startTime);
+    return index >= 0 && index < times.length - 1 ? times[index + 1] : times[times.length - 1];
+  }
+
+  function handleTimeChange() {    
+    let startTime = document.getElementById("StartTime").value;
+    let stopTime = document.getElementById("StopTime").value;
+    // If StartTime and StopTime are the same, adjust StopTime to be 30 minutes after StartTime
+    if (startTime === stopTime) {
+        StopTime.value = getNextTime(startTime);
+    }
+}
+
+    
+  document.getElementById("AppStartDirectory").addEventListener('click', function(){     
+    // custom event as read only UI elements dont fire events
+    document.getElementById('AppStartDirectory').dispatchEvent(new Event('valuechanged')); 
+    var result = ipcRenderer.sendSync('playlist_dir_dialog', ' ');    
+    if (result == ""){
+      document.getElementById('AppStartDirectory').value = g_appStartDir; 
+    }else{
+      document.getElementById('AppStartDirectory').value = result; 
+    }
+  });
+
+
+
+  function BuildPlaylistNameDropdown(){  
+    const PlaylistDropdown = document.getElementById('playlist_name');    
+    PlaylistDropdown.innerHTML = '';
+    const playlists = readPlaylistPaths();
+    const playlistNames = Object.keys(playlists);
+      // Sort by the second part (displayName) in a case-insensitive manner
+    playlistNames.sort((a, b) => {
+      const nameA = a.split('_')[1]?.toLowerCase() || '';
+      const nameB = b.split('_')[1]?.toLowerCase() || '';
+      return nameA.localeCompare(nameB);
+    });
+    // Create and append <option> elements
+    playlistNames.forEach(playlistName => {
+      const parts = playlistName.split('_');
+      const displayName = parts[1]; // Fallback to full name if no display name
+      const option = document.createElement('option');
+      option.value = playlistName;
+      option.textContent = displayName;
+      PlaylistDropdown.appendChild(option);
+    });    
+    // Select g_selPLAYLIST if available, otherwise select the first option
+    if (playlistNames.includes(g_selPLAYLIST)) {
+      PlaylistDropdown.value = g_selPLAYLIST;
+    } else if (playlistNames.length > 0) {
+      PlaylistDropdown.selectedIndex = 0;
+    }
+  }
+
+  // refresh all database entreis
+  async function refreshAllDB(){      
+    await readUI();
+    rebuildall();         // located in DBFuctions.js          
+  }
+
+  function prefetchcheck(){
+    var preload = Number(document.getElementById('preloadNUM').value);
+    var prefetch = document.getElementById('prefetchNUM').value;
+    if (prefetch > preload){
+      document.getElementById('prefetchNUM').value = preload;
+    }
+  } 
+
+    // Monitor appPort for changes
+  document.getElementById("appPort").addEventListener('input', function () {
+    let val = document.getElementById("appPort").value.replace(/\D/g, '').slice(0, 4);// Remove non-digit characters and limit to 4 digits
+    document.getElementById("appPort").value = val;    
+    if (val !== lastAppPortValue) {// If appPort is changed from last saved value      
+      ip_local(); // need a check to make sure have a 4 digit port // Enable only if exactly 4 digits, otherwise disable
+    }
+  });
+
+  function ip_local(){    
+    ipcRenderer.invoke('get-local-ips').then(addresses => { //const addresses = { ipv4: [], ipv6: [] };      
+      if (addresses.ipv6.length != 0) { // The ipv6 array is not empty              
+        document.getElementById("labelipv6").textContent = addresses.ipv6;        
+        let finalIP = "http://[" + addresses.ipv6 + "]:" + document.getElementById("appPort").value;              
+        qrcodeipv6.makeCode(finalIP);                                      
+      }else{
+        document.getElementById('qrcodeipv6').parentElement.style.verticalAlign = "top";
+        document.getElementById('qrcodeipv6').style.whiteSpace = "normal";
+        document.getElementById('qrcodeipv6').style.wordBreak = "break-word";
+        document.getElementById('qrcodeipv6').textContent = 'IPv6 is not currently enabled in the network settings of the computer';        
+      }
+      if (addresses.ipv4.length != 0) {        
+        document.getElementById("labelipv4").textContent = addresses.ipv4;
+        let finalIP = "http://" + addresses.ipv4 + ":" + document.getElementById("appPort").value;
+        qrcodeipv4.makeCode(finalIP);
+      }else{
+        document.getElementById('labelipv4').parentElement.style.verticalAlign = "top";
+        document.getElementById('labelipv4').style.whiteSpace = "normal";
+        document.getElementById('labelipv4').style.wordBreak = "break-word";
+        document.getElementById('labelipv4').textContent = 'IPv4 is not currently enabled in the network settings of the computer';        
+      }
+    });
+  }
+
+  /*
+  //
+  //
+  //
+  //
+  // tab2 functions 
+  //
+  //
+  //
+  //
+  */
+
+  // button event handler for all button clicks in .button-box
+  document.querySelector('.button-box').addEventListener('click', function(e) {
+    if (e.target.tagName === 'BUTTON') {
+      const btnId = e.target.id;
+      // You can handle each button by its id:
+      switch (btnId) {
+        case 'createPlaylist':
+          PlaylistStatusFlag = "create"; //create, edit, ""
+          UpdateUI('createPlaylist');
+          buildPlaylistFolderTable(null);          
+        break;
+        case 'savePlaylist':
+          PlaylistStatusFlag = ""; //create, edit, ""
+          SavePlaylist();          
+          //UpdateUI('savePlaylist');  
+          PlaylistStatusFlag = "";
+        break;
+        case 'deletePlaylist':
+          PlaylistStatusFlag = ""; //create, edit, ""
+          DeletePlaylist();
+        break;
+        case 'cancelPlaylist': 
+          PlaylistStatusFlag = ""; //create, edit, ""         
+          buildPlaylistTab(); 
+          UpdateUI('cancelPlaylist');
+        break;
+      }
+      // Or call a single handler and pass the id:
+      // handleButtonClick(btnId);
+    }
+  });
+
+  function UpdateUI(action){
+    switch (action) {
+      case 'savePlaylist':
+        document.getElementById('playlistTable').classList.remove('disabled');
+        document.getElementById('deletePlaylist').disabled = false;
+        document.getElementById('cancelPlaylist').disabled = true;
+        document.getElementById('savePlaylist').disabled = true;
+        document.getElementById('createPlaylist').disabled = false;
+        document.getElementById('playlistActionText').textContent = 'Edit Playlist';
+
+      break;
+      case 'createPlaylist':        
+        document.getElementById('createPlaylist').disabled = true;      
+        document.getElementById('deletePlaylist').disabled = true;
+        document.getElementById("cancelPlaylist").disabled = false;            
+        document.getElementById('playlistTable').classList.add('disabled');        
+
+        document.getElementById('playlistActionText').textContent = 'Create Playlist';
+        document.getElementById('selectedPlaylist').value="";
+        document.getElementById('IncludeKeywords').value="";
+        document.getElementById('ExcludeKeywords').value=""; 
+        document.getElementById("selectedPlaylist").focus();                          
+      break;
+      case 'cancelPlaylist':
+        document.getElementById("cancelPlaylist").disabled = true;   
+        document.getElementById('createPlaylist').disabled = false; 
+        document.getElementById('deletePlaylist').disabled = false; // Show Delete
+        document.getElementById('savePlaylist').disabled = true; 
+        document.getElementById('playlistActionText').textContent = 'Edit Playlist';
+        document.getElementById('playlistTable').classList.remove('disabled');
+      break;
+      case 'BuildPlaylistTab':
+        document.getElementById('PlaylistNameInfo').src = './assets/images/app help.png';      
+        document.getElementById('deletePlaylist').hidden= false;    
+      break;
+      case 'defaultPlaylistSelected':
+        document.getElementById('deletePlaylist').hidden= true;
+      break;
+      case 'playlistCreationError':
+        document.getElementById('cancelPlaylist').disabled = false;
+        document.getElementById('savePlaylist').disabled = false;
+        document.getElementById('createPlaylist').disabled = true;        
+        document.getElementById('deletePlaylist').disabled = true;
+        document.getElementById('playlistTable').classList.add('disabled');     
+        ShowAlert("Playlist not created.\n\n  Attempted to created a playlist with no folders.\n\nThis may be caused by keywords in Use Folders with Keywords or Do Not Use Folders with Keywords fields", false).then((result) => {      
+        })
+      break;
+    }
+    // Or call a single handler and pass the id:
+    // handleButtonClick(btnId);
+  }
+
+  // button clicks
+  async function SavePlaylist(){
+    new_name = GetPlaylistName();    
+    const table = document.getElementById('FolderTable');
+    const dirlist = [];
+    const rows = table.rows;
+    for (let i = 0; i < rows.length - 1; i++) { // exclude last row
+      const cell = rows[i].cells[0]; // column 0
+      if (cell) {
+        dirlist.push(cell.textContent.trim());
+      }
+    }       
+    //ipcRenderer.send('popup', {caller:'index.html', title:'Building Index'});        
+    ipcRenderer.send('popup','Building Index');        
+    try{
+      let errorOccurred = await CreateAddPlaylistTable(new_name,dirlist, true);     
+      if (errorOccurred){ // an error occured
+        //working here
+        UpdateUI('playlistCreationError')
+      }else{
+        ipcRenderer.send('playlist_updated', '');  
+        buildPlaylistTab();
+        UpdateUI('savePlaylist');
+      }
+      ipcRenderer.send('close_popup', '');  
+    }catch (err){
+      //writeRotateDeleteError(null, null, 'Error creating playlist table: '+ new_name + ' ' + err.message);      
+      ipcRenderer.send('close_popup', '');  
+    }                           
+  }
+
+
+  function GetHelpPlaylistNames(){    
+    ShowAlert("Playlist names must be unique and must not contain spaces, dashes or other special characters.\n\nThe default Selected Playlist may not be deleted.  The default Selected Playlist is selected on the Configuration Settings tab.", false).then((result) => {      
+    })
+  }
+
+  function GetHelpIncludeKeywords(){    
+    ShowAlert('Optionally enter one or more keywords (separating multiple keywords with commas) to filter the "Playlist Folders" in this playlist.\n\nFor example, if you enter "vacat" within the "Use Folders with Keywords" field, the playlist will identify folders that have names containing that term, such as "Italy Vacation" or "Vacation Home". Once identified, only the digital content in those folders are included in the playlist.\n\nKeywords are not case sensitive and special characters are not allowed.\n\nIf no matches are found, the playlist will not be generated; make sure that at least one of the folder names in the "Playlist Folders" folder paths has the entered term.', false).then((result) => {      
+    })
+  }
+
+  function GetHelpExcludeKeywords(){    
+    ShowAlert('Optionally enter one or more keywords (separating multiple keywords with commas), to filter the "Playlist Folders" in this playlist.\n\nWhen a match is found, the digital contents of that folder will be *excluded* from the playlist. For example, if you enter "Georg" within the "Do Not Use Folders with Keywords" field, the playlist will identify folders that have names containing that term, such as "George Birthday" or "Georgia 1993". Once identified, all the digital content in those folders will not appear in the playlist.\n\nKeywords are not case sensitive and special characters are not allowed.\n\nIf an exclusion keyword is found in all folder names, the playlist is not generated.', false).then((result) => {      
+    })
+  }
+
+  function GetHelpFolderTable(){    
+    ShowAlert('You must select at least one specific folder to include in the playlist. The photos and videos contained in the selected folder(s) and all its subfolders will be included in the playlist content, unless you filter using the keywords fields.\n\nThis table shows all folders selected for this playlist. Folders are added by clicking "click to add folder" and following the instructions on the folder browser window. If an added folder needs to be removed, click the trash bin icon next to the added folder.', false).then((result) => {      
+    })
+  }
+
+  function GetPlaylistName(){
+    new_playlistSaveName = document.getElementById('selectedPlaylist').value.toLowerCase(); 
+    if (new_playlistSaveName == ""){ // if no name, return empty string
+      return "";
+    }else{
+      let includeKeywords = document.getElementById('IncludeKeywords').value.toLowerCase(); 
+      let excludeKeywords = document.getElementById('ExcludeKeywords').value.toLowerCase();
+      excludeKeywords = excludeKeywords.split(',').map(item => item.trim()).filter(item => item !== '').map(item => '$' + item).join('_');
+      includeKeywords = includeKeywords.split(',').filter(item => item.trim() !== '').join('_'); 
+      new_playlistSaveName = "playlist_" + new_playlistSaveName;  
+      new_playlistSaveName = new_playlistSaveName.toLowerCase(); // ensure all names are lower case  
+      if (includeKeywords) {
+        new_playlistSaveName += '_' + includeKeywords;
+      } 
+      if (excludeKeywords) {
+        new_playlistSaveName += '_' + excludeKeywords;
+      }        
+      return new_playlistSaveName;
+    }
+  }
+
+  async function DeletePlaylist(){        
+    ShowAlert("Delete selected playlist?", true).then((result) => {      
+      if (result == 'ok'){
+        new_playlistSaveName = GetPlaylistName(); // get the name of the playlist to delete
+        db.prepare('DROP TABLE IF EXISTS '+ new_playlistSaveName).run();        
+        buildPlaylistTab();
+        if (document.getElementById('playlistTable').rows.length == 1){ // if no playlists, return
+          document.getElementById('deletePlaylist').disabled = true; // disable the table  
+        }else{
+          document.getElementById('deletePlaylist').disabled = false;
+        }
+      }      
+    });
+  }
+  
+  function buildPlaylistTab(){
+    UpdateUI('BuildPlaylistTab');    
+    buildPlaylistTable();        
+  }
+
+ // ensure new playlist name is formatted correctly and unique
+  document.getElementById('selectedPlaylist').addEventListener('change', function (e) {
+    let new_name = document.getElementById('selectedPlaylist').value;
+    new_name = new_name.replace(/[^a-zA-Z0-9,]/g, '');  // get rid of special characters
+    new_name = new_name.replace(/,+$/, ''); // get rid of trim trailing commas
+    document.getElementById('selectedPlaylist').value = new_name;     
+    TestPlaylistName();
+  });
+
+  // ensure keywords are formatted correctly
+  document.getElementById('IncludeKeywords').addEventListener('change', function (e) {
+    let includeKeywords = e.target.value;
+    // Sanitize the input
+    includeKeywords = includeKeywords.replace(/[^a-zA-Z0-9,]/g, '');
+    includeKeywords = includeKeywords.split(',').filter(item => item.trim() !== '').join(',');
+    // Update the input field
+    e.target.value = includeKeywords;
+    // Call the playlist test function
+    TestPlaylistName();
+  });
+    
+  // ensure keywords are formatted correctly
+  document.getElementById('ExcludeKeywords').addEventListener('change', function (e) {
+    let excludeKeywords = e.target.value;
+    // Sanitize the input
+    excludeKeywords = excludeKeywords.replace(/[^a-zA-Z0-9,]/g, '');
+    excludeKeywords = excludeKeywords.split(',').filter(item => item.trim() !== '').join(',');
+    // Update the input field
+    e.target.value = excludeKeywords;
+    // Call the playlist test function
+    TestPlaylistName();
+  });
+  
+  function TestEnableSavebutton(){    
+    new_playlistSaveName = GetPlaylistName(); // get the name of the playlist
+    FolderTablelen = document.getElementById('FolderTable').rows.length;         
+    if (PlaylistStatusFlag == "create"){
+      if (FolderTablelen > 1 && new_playlistSaveName != "" && !TestDuplicatePlaylistName(new_playlistSaveName)){      
+        document.getElementById("savePlaylist").disabled = false;                 
+      } else{
+        document.getElementById("savePlaylist").disabled = true;      
+      }
+    }else{
+      if (FolderTablelen > 1 && new_playlistSaveName != ""){
+        document.getElementById("savePlaylist").disabled = false;                 
+      }else{
+      document.getElementById("savePlaylist").disabled = true;;  
+      }
+    }
+  }
+  
+
+  function TestPlaylistName(){        
+    new_playlistSaveName = GetPlaylistName(); // get the name of the playlist
+    duplicateplaylist = TestDuplicatePlaylistName(new_playlistSaveName);
+    if (PlaylistStatusFlag == "create"){
+      if (!duplicateplaylist && new_playlistSaveName !== ""){         
+        document.getElementById('PlaylistNameInfo').src = './assets/images/app help.png'; 
+        document.getElementById('selectedPlaylist').style.backgroundColor = '';                       
+      }else{
+        document.getElementById('PlaylistNameInfo').src = './assets/images/warning.png';
+        document.getElementById('selectedPlaylist').style.backgroundColor = 'lightyellow';            
+      }      
+    }else{      
+      document.getElementById('playlistTable').classList.add('disabled');
+      document.getElementById("cancelPlaylist").disabled = false;
+      document.getElementById("deletePlaylist").disabled = true;
+      document.getElementById("createPlaylist").disabled = true;      
+    }
+    TestEnableSavebutton();  
+  }
+
+  function TestFolderTable(){
+    FolderTablelen = document.getElementById('FolderTable').rows.length;    
+    if (PlaylistStatusFlag == ""){          
+      document.getElementById('playlistTable').classList.add('disabled');
+      document.getElementById("cancelPlaylist").disabled = false;
+      document.getElementById("deletePlaylist").disabled = true;
+      document.getElementById("createPlaylist").disabled = true;      
+    } 
+    TestEnableSavebutton();   
+  }
+
+  function TestDuplicatePlaylistName(new_playlistSaveName){    
+    playlists = readPlaylistPaths(); // read playlist names and playlsit directory paths
+    playlistNames = Object.keys(playlists); // just array of playlist names
+      //test for duplicate plyalist name
+    for (let i = 0; i < playlistNames.length; i++) {
+      if (playlistNames[i].toLowerCase() === new_playlistSaveName) {         
+        return true;                   
+      }
+    }
+    return false;
+  }
+
+  document.getElementById('FolderTable').addEventListener('click', function (e) {                    
+    if ((e.target.tagName === 'TD' || e.target.tagName === 'IMG') && e.target.tagName !== 'TH'){      
+      const clickedCell = e.target.closest('TD');  // if the image is clicked, get the parent TD      
+      const col = clickedCell.cellIndex;
+      const row = clickedCell.parentElement.rowIndex;;              
+      const len = document.getElementById('FolderTable').rows.length - 1;
+      if (col == 1 && row != len) {        
+        clickedCell.parentElement.remove();         
+        document.getElementById('PlaylistNameInfo').src = './assets/images/app help.png';   
+        document.getElementById('selectedPlaylist').style.backgroundColor = '';      
+      } else if (row == len){        
+        var result = ipcRenderer.sendSync('playlist_dir_dialog', ' ');
+        if (result.length !=0){          
+          const newRow = document.createElement('tr');
+          newRow.innerHTML = `<td style="padding: 2px 5px;">${result}</td><td style="padding: 2px 5px;"><img src='./assets/images/del.png' style="width: 30px; height: auto;" alt='delete'></td>`;
+          clickedCell.parentElement.replaceWith(newRow);
+          const newRowAdd = document.createElement('tr');
+          newRowAdd.innerHTML = "<td style='font-weight: bold; padding: 10px 5px'> click to add folder </td><td></td>";
+          document.querySelector('#FolderTable tbody').appendChild(newRowAdd);               
+          document.getElementById('PlaylistNameInfo').src = './assets/images/app help.png';   
+          document.getElementById('selectedPlaylist').style.backgroundColor = ''; 
+        }
+        // reposition to the last row in the table
+        const rowpos = document.querySelector('#FolderTable tr:last-child').offsetTop;  
+        document.getElementById('FolderTableSettings').scrollTop = rowpos;
+      }
+    }    
+    TestFolderTable();
+  });
+
+    // build playlist table and update 
+  document.getElementById('playlistTable').addEventListener('click', function (event) {
+    UpdateUI('BuildPlaylistTab'); // reset UI to default state
+    const row = event.target.closest('tr');        
+    const includeStrings = [];
+    const excludeStrings = [];
+    if (!row) return;
+    if (g_selPLAYLIST == row.dataset.fullName){ // if the same row is clicked, do nothing
+      //ShowAlert('You may not delete the Current Playlist', false).then((result) => {          })      
+      UpdateUI('defaultPlaylistSelected');
+    }
+    Array.from(document.getElementById('playlistTable').getElementsByTagName('tr')).forEach(tr => tr.classList.remove('selected'));// Remove existing selections
+    row.classList.add('selected');  // Add selection to the clicked row
+    buildPlaylistFolderTable( row.dataset.fullName);      // fullName = row.dataset.fullName; // hidden original value  displayName = row.querySelector('td').textContent; // visible cell value
+    displayName = row.querySelector('td').textContent;
+    document.getElementById('selectedPlaylist').value = displayName;   
+    // extract include exclude keywords from the playlist name
+    // Loop through the remaining parts
+    const parts = row.dataset.fullName.split('_');
+    // First part is always the playlist name     
+    for (let i = 2; i < parts.length; i++) {
+      const part = parts[i];
+      if (part.startsWith('$')) {
+        excludeStrings.push(part.slice(1)); // remove the $ prefix
+      } else {
+        includeStrings.push(part);
+      }
+    }
+    // Join with commas
+    const IncludeString = includeStrings.join(',');
+    const ExcludeString = excludeStrings.join(',');
+    document.getElementById('IncludeKeywords').value = includeStrings;
+    document.getElementById('ExcludeKeywords').value = excludeStrings;
+  });
+
+  function buildPlaylistTable(){
+    playlists = readPlaylistPaths(); // read playlist names and playlsit directory paths
+
+    if (typeof playlists === 'object' && playlists !== null && Object.keys(playlists).length === 0) {
+      // playlisits is empty object as this might be the first run of hte app
+      return;      
+    }
+    tableBody = document.getElementById('playlistTable').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = '';
+
+    playlistNamesUnfiltered = Object.keys(playlists);
+
+    // Extract and store filtered + full names
+    let playlistNames = playlistNamesUnfiltered.map(item => {
+      const display = item.replace(/^playlist_/, '').split('_')[0];
+      return { display, full: item };
+    });
+
+    // Case-insensitive sort by display name A–Z
+    playlistNames.sort((a, b) => a.display.toLowerCase().localeCompare(b.display.toLowerCase()));
+
+    playlistNames.forEach(({ display, full }) => {
+      const row = document.createElement('tr');
+      row.dataset.fullName = full;  // Hidden full value
+      if (g_selPLAYLIST == full){ // if the current playlist is selected, highlight it        
+        row.innerHTML = `<td>${display}<img src="./assets/images/app star.png" alt="comment" style="height:8px; width:auto"></td>`;
+      }else{
+      row.innerHTML = `<td>${display}</td>`;  
+      }      
+      tableBody.appendChild(row);
+    });
+
+    buildPlaylistFolderTable(playlistNames[0].full); // build the first playlist folder table
+    document.querySelector('#playlistTable tr')?.click();
+  }
+
+  function buildPlaylistFolderTable(SelectedPlaylist){ // pass a null if not using   
+    const playlistFolderTable = document.getElementById('FolderTable');
+    tableBody = document.getElementById('FolderTable').getElementsByTagName('tbody')[0];
+    tableBody.innerHTML = '';
+    if (SelectedPlaylist != null){
+      playlists = readPlaylistPaths(); // read playlist names and playlsit directory paths
+      playlistNames = Object.keys(SelectedPlaylist);
+
+      displayName = SelectedPlaylist.replace(/^playlist_/, '').split('_')[0];
+
+      const PlaylistDirs = playlists[SelectedPlaylist];  
+
+      PlaylistDirs.forEach(PlaylistDir => {
+        newRow = playlistFolderTable.insertRow();
+        newRow.innerHTML = `<td style="padding: 2px 5px;">${PlaylistDir}</td><td style="padding: 2px 5px"><img src='./assets/images/del.png' style="width: 30px; height: auto;" alt='delete'></td>`;
+      });  
+    }  
+      const addRow = playlistFolderTable.insertRow();
+      addRow.innerHTML = "<tr><td style='font-weight: bold; padding: 10px 5px'> click to add folder </td><td></td></tr>";
+      scrollDiv = document.getElementById('PlaylistTableSettings'); // scroll to bottom of table
+      scrollDiv.scrollTop = scrollDiv.scrollHeight;    
+  }
+
+
+
+
+  /*
+  //
+  //
+  //
+  //
+  // tab3 functions 
+  //
+  //
+  //
+  //
+  */
+
+  function ClearNotificaitonsTable(){
+    const markedFilesTable = document.getElementById('notifications');
+    markedFilesTable.innerHTML = ''; // clears all rows
+    ClearRotateDelete();
+    buildNotificationsTable();
+  }
+  
+
+  function buildNotificationsTable(){
+    const markedFilesTable = document.getElementById('notifications');
+    markedFilesTable.innerHTML = ''; // clears all rows
+    notifications = readRotateDeleteError(); // located in DBFunctions.js
+
+    const keyDisplayNames = {
+      rotate: "Videos Marked for Rotation",
+      delete: "Items Marked for Deletion",
+      error: "General Warnings"
+    };
+    const MarkedItems ={
+      rotate: "no videos",
+      delete: "no items",
+      error: "no warnings"
+    }
+    let rowentry = '';
+    Object.keys(notifications).forEach(function (key) {
+      // Use the mapped display name if available, otherwise use the key
+      const displayName = keyDisplayNames[key] || key;
+
+      // Insert header row with word-wrap styling
+      let rowentry = '';
+      rowentry += '<tr>';
+      rowentry += '<td style="border: 1px solid #ccc; word-break: break-word; white-space: normal;">';
+      rowentry += '<b>' + displayName + '</b></td>';
+      rowentry += '</tr>';
+      markedFilesTable.insertAdjacentHTML('beforeend', rowentry);
+
+      // Insert file entries or empty message
+      rowentry = '';
+      if (notifications[key].length === 0) {
+        const Displaymsg = MarkedItems[key] || key;
+        rowentry += '<tr>';
+        rowentry += '<td style="border: 1px solid #ccc; color: #999; font-style: italic; word-break: break-word; white-space: normal;">';
+        rowentry += '(' + Displaymsg + ')</td>';
+        rowentry += '</tr>';
+      } else {
+        notifications[key].forEach(function (value) {
+          rowentry += '<tr>';
+          rowentry += '<td style="border: 1px solid #ccc; word-break: break-word; white-space: normal;">';
+          rowentry += value + '</td>';
+          rowentry += '</tr>';
+        });
+      }
+      markedFilesTable.insertAdjacentHTML('beforeend', rowentry);
+    }); 
+  }
+
+
+  </script>
+</body> 
+</html>

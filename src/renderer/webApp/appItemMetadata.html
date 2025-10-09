@@ -1,0 +1,187 @@
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+
+    html, body {
+      height: 100%;
+      margin: 5px;
+      padding: 5px;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+      font-size: 20px;
+      line-height: 1.2;
+    }
+
+  * {
+      box-sizing: inherit;
+    }
+
+  body {
+    padding-bottom: 80px; /* makes space for bottom-buttons so they don’t overlap content */
+  }
+
+  input, button, select, textarea {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  .bottom-buttons {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 60px;
+    padding: 10px 0;
+    background-color: white;    
+  }
+
+  textarea{    
+    width: 95%;
+    height: 200px;
+    padding: 5px;
+    box-sizing: border-box;
+    border: 2px solid #ccc;
+    border-radius: 4px;    
+    resize: none;
+  }
+
+
+  </style>
+
+  <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+</head>
+  
+
+<body onload='initialize()'>
+  <b><center>Item Info</center></b>
+  <div>
+    <label for="newComments">Comments</label><br>
+    <textarea id="newComments" width="100%"></textarea>
+  </div>
+  <p></p>
+  <p></p>
+  <div>    
+    <input type="checkbox" id="hiddenCheckbox" >
+    <label for="hiddenCheckbox">Sensitive Item</label>
+  </div>
+  <p></p>
+  NOTE: Saved changes are immediately applied to the item file, but are not reflected in the currently displayed item until it is either refreshed nightly or manually via Configuration Settings.
+  <div class="bottom-buttons">    
+    <button id="accept" name="accept" style="height:40px; width:120px;"  filter:grayscale(100%);" disabled onclick="SaveChanges()">Save</button>
+    <button id="home" name="home" style="height:40px; width:120px;"  onclick="cancel()">Cancel</button>
+  </div>     
+
+   
+</body> 
+<script type='text/javascript' src='appServer.js'></script>
+<script src="../../common/customAlert.js"></script> 
+<script>
+    
+  const hiddenCheckbox = document.getElementById('hiddenCheckbox');   
+  const newComments = document.getElementById('newComments'); 
+  const homebutton = document.getElementById('home');
+  let ImageEXIFdata = null;
+  let initialComments = "";
+  let initialHidden = false;
+
+  async function initialize(){        
+      ImageEXIFdata = await PrepMessage('AppGetCurrentDisplayImageData');      
+      if (ImageEXIFdata != null) {            
+        const isSupported = ['.jpeg', '.jpg', '.mp4'].some(ext => ImageEXIFdata.ImagePath.toLowerCase().endsWith(ext));    
+        if (isSupported) {
+          // Populate the fields with the current data
+          newComments.value = ImageEXIFdata.dbEXIFImageComments; 
+          hiddenCheckbox.checked = ImageEXIFdata.dbEXIFHiddenImages;
+
+          // Store initial values
+          initialComments = (ImageEXIFdata.dbEXIFImageComments || "").trim();
+          initialHidden = !!ImageEXIFdata.dbEXIFHiddenImages;
+          newComments.addEventListener('input', checkForChanges);
+          hiddenCheckbox.addEventListener('change', checkForChanges);      
+        } else {
+          ShowAlert('This file type is not supported for info data editing.', false).then((result) => {                
+            PrepMessage('AppUnpause');
+            homebutton.click(); // Redirect to home if unsupported
+          })
+        }
+      } else {
+        ShowAlert('Display window is not open.', false).then((result) => {      
+          PrepMessage('AppUnpause');
+          homebutton.click(); // Redirect to home if no display window
+        })
+      }
+  } 
+
+  function cancel() {
+    PrepMessage('AppUnpause');
+    // Redirect to the options page
+    location.href = '/appOptions';
+  } 
+
+  function checkForChanges() {
+    const acceptBtn = document.getElementById('accept');
+    const currentComments = newComments.value.trim();
+    const currentHidden = hiddenCheckbox.checked;
+
+    if (currentComments !== initialComments || currentHidden !== initialHidden) {
+      acceptBtn.disabled = false;
+      acceptBtn.style.filter = "none";
+    } else {
+      acceptBtn.disabled = true;
+      acceptBtn.style.filter = "grayscale(100%)";
+    }
+  }
+
+  function SaveChanges() {
+    ImageEXIFdata.dbEXIFImageComments = newComments.value.trim() === "" ? null : newComments.value.trim();    
+    ImageEXIFdata.dbEXIFHiddenImages = hiddenCheckbox.checked;
+    PrepMessage('AppSaveEXIFData'); // Call the function to save changes   
+    PrepMessage('AppUnpause');   
+    location.href = '/appOptions';
+  }
+
+  async function PrepMessage(payload){  
+    messagePayload = null;
+    switch (payload){
+      case 'AppGetCurrentDisplayImageData':
+        messagePayload = {command:"AppGetCurrentDisplayImageData", data:{closepage:{done:0}}};
+      break;      
+      case 'AppUnpause':
+        messagePayload = {command:"AppGetCurrentDisplayImageData", data:{closepage:{done:1}}};
+      break; 
+      case 'AppSaveEXIFData':
+        messagePayload = {command: "AppSaveEXIFData", data: ImageEXIFdata};
+      break;
+    }  
+    try {
+      // Await the response from the new, async makeRequest function.
+      const returnData = await makeRequest('/app_sendrequest', messagePayload);
+      command = returnData.command;
+      data = returnData.data;
+      // Handle the response based on the command.
+      switch(messagePayload.command){
+        case 'AppGetCurrentDisplayImageData':        
+          if (data === null) return; // No ImageWindow available
+          return data; // Return the image data          
+        break;
+
+        default:          
+        break;
+      }      
+    } catch (error) {      
+      //ShowAlert('Error in html POST. '+ error, false).then((result) => {  })    
+    }    
+  }
+
+
+</script>
+
+</html>
