@@ -1,83 +1,35 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<style> 
-
-html, body {
-  height: 100%;
-  margin: 5px;
-  padding: 5px;
-}
-
-body {
-  font-family: Arial, sans-serif;
-  font-size: 20px;
-  line-height: 1.2;
-  height: 100vh;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-  
-input, button, select, textarea {
-  font-family: inherit;
-  font-size: inherit;
-  line-height: inherit;
-}
-
-.bottom-buttons {
-  position: fixed;
-  bottom: 0;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 80px;
-  padding: 2vh 0;
-  margin-left: -15px;  
-  background-color: white; /* optional: ensure text behind it doesn't bleed through */ 
-}
-
-.center-section {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;; /* vertical centering in available space */
-  margin-top: 40px; /* adjust as needed */
-}
-
-#labelipv6, #labelipv4 {
-  text-align: center;   /* centers inline text */
-}
-
-
-	</style>
+  <link rel="stylesheet" href="base.css">     
   <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+  <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <title>IP Addresses and Ports</title>   
 </head>
 
 <body onload='initialize()'>
-  <div style="height: 1.5em; width: 100%; text-align: center; margin-top: 20px;">
-    <b>IP Addresses and Port</b>
-  </div>
-  <div class="center-section">
-    <strong>Local IPv4</strong>
-    <div id = "labelipv4"></div>
+  <header>
+    <h3>IP Addresses and Port</h3>
+  </header>
+
+  <section class="center-section">
+    
+    <h4>Local IPv4</h4>
+    <div id ="labelipv4"></div>
     <div id="qrcodeipv4" ></div>
-    <p> </p>
-    <strong>Local IPv6</strong>
-    <div id = "labelipv6"></div>
+
+    <h4>Local IPv6</h4>
+    <div id ="labelipv6"></div>
     <div id="qrcodeipv6" ></div>    
-  </div>
+  </section>
 
-  <div class="bottom-buttons">        
-    <input type="image" id="home" name="home" src="../renderer/assets/images/home.png"  style="height:80px" onclick="location.href='/appOptions';">
-  </div>   
+  <section class="bottom-buttons">        
+    <input type="image" id="home" name="home" src="../renderer/assets/images/home.png" onclick="location.href='/appOptions';">
+  </section>   
 
-</body>
+
 
 <script type='text/javascript' src='appServer.js'></script>
 <script type="text/javascript" src="../../common/qrcode.js"></script>
@@ -158,4 +110,5 @@ input, button, select, textarea {
   }
 
 </script>
+</body>
 </html>

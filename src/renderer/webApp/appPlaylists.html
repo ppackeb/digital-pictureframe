@@ -1,82 +1,36 @@
 
 <!DOCTYPE html>
 <html>
-
-<head>
-  <style>
-
-
-html, body {
-  height: 100%;
-  margin: 5px;
-  padding: 5px;
-}
-
-body {
-  font-family: Arial, sans-serif;
-  font-size: 20px;
-  line-height: 1.2;
-}
-  
-input, button, select, textarea {
-    font-family: inherit;
-    font-size: inherit;
-    line-height: inherit;
-}
-
-  th, td {      
-    font-family: Arial, sans-serif;
-    text-align: left;
-    padding: 8px;
-    font-size:20px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }   
-
-.table-wrapper {
-  overflow-y: auto;
-  padding-bottom: 10px; /* Optional: small bottom space */
-  height: calc(100vh - 120px); /* Adjust 120px based on button size + spacing */
-}
-
-  .bottom-buttons {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 80px;
-    padding: 10px 0;
-    background-color: white; /* optional: ensure text behind it doesn't bleed through */
-  }
-
-
-
-</style>
-
+<head>  
+  <link rel="stylesheet" href="base.css">     
   <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <title>Playlists</title> 
 </head>
   
 
 <body onload='initialize()'>
-  <b><center>Manage Playlists</center></b>
-  <br>
-  <div class="table-wrapper">
-    <table id="playlists" style="width:100%; border-collapse: collapse;">    
-      <tbody>
-        <!-- Rows will be inserted here -->
-      </tbody>
-    </table>
-  </div>
+  <header>
+    <h3>Manage Playlists</h3>
+  </header>
+    
+  <section class="scrollable-folder-table large">    
+    <table class="folder-table" id="playlists">          
+      <colgroup>
+        <col class="folder-name">
+        <col class="folder-icon">
+      </colgroup>              
+    </table>    
+  </section>
       
-  <div class="bottom-buttons">
-    <input type="image" id="home" name="home" src="../renderer/assets/images/home.png"  style="height:80px" onclick="location.href='/appOptions';">
-    <input type="image" id="newPlaylist" name="newPlaylist" style="height:70px" src="../renderer/assets/images/plusicon.png" onclick="NewPlaylist()">
+  <div class="bottom-buttons-images">
+    <input type="image" id="home" name="home" src="../renderer/assets/images/home.png"  onclick="location.href='/appOptions';">
+    <input type="image" id="newPlaylist" name="newPlaylist" src="../renderer/assets/images/plusicon.png" onclick="NewPlaylist()">
   </div>
    
-</body> 
+
 <script type='text/javascript' src='appServer.js'></script>
 <script src="../../common/customAlert.js"></script> 
 <script>
@@ -117,8 +71,7 @@ input, button, select, textarea {
 function WriteUI(data) {
   playlists = data.playlists;
   SelectedPlaylist = data.selplaylist;  
-  const tableBody = document.getElementById('playlists').getElementsByTagName('tbody')[0];
-  tableBody.innerHTML = '';
+  const playlistTable = document.getElementById("playlists");
 
   playlistNames = Object.keys(playlists);
 
@@ -133,27 +86,16 @@ function WriteUI(data) {
     parts = name.split('_');
     displayName = parts[1];
     PlaylistFullName = name.replace(/^playlist_/, '');
-
-    const row = document.createElement('tr');
-    if (index % 2 === 0) {
-      row.style.backgroundColor = '#f0f0f0';
-    }
-
+    
+    let newRow = playlistTable.insertRow();
     
       // Highlight if this is the selected playlist
     if (PlaylistFullName === SelectedPlaylist) {
-      row.innerHTML = `<td>${displayName}<img src="app star.png" alt="comment" style="height:8px; width:auto"></td>`;
-      row.classList.add('selected-row'); // Add a CSS class
-      row.setAttribute('data-selected', 'true'); // Add a data attribute for programmatic access
+      newRow.innerHTML = `<td>${displayName}</td> <td><img src="../renderer/assets/images/app star.png"></td>`;
     }else{
-      row.innerHTML = `<td>${displayName}</td>`;  
-    } 
-    tableBody.appendChild(row);
+      newRow.innerHTML = `<td>${displayName}</td> <td></td>`;            
+    }     
 
-    // const cell = document.createElement('td');
-    //cell.textContent = displayName;
-    //row.appendChild(cell);
-    //tableBody.appendChild(row);
   });
 }
 
@@ -174,5 +116,5 @@ function WriteUI(data) {
   }
 
 </script>
-
+</body> 
 </html>

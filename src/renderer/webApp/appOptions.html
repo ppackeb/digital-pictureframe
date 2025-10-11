@@ -1,88 +1,50 @@
 <!DOCTYPE html>
 <html>
 
-<head>
-  <style>
-  body {
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    min-height: 100vh;
-    background-color: white;
-  }
-
-  .bottom-container {
-    width: 80vw;               /* Fill 80% of screen width */
-    height: 80vh;              /* Fill 90% of screen height */
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    align-items: center;
-    padding: 2vh 0;
-    margin-bottom: 15vh;  /* responsive bottom margin */
-    box-sizing: border-box;
-  }
-
-  .button-row {
-    display: flex;
-    justify-content: center;
-    gap: 5vw;    
-    width: 100%;
-    align-items: center;
-  }
-
-  .button-row input[type="image"] {
-    height: 80px;
-    width: 80px;       /* fixed width same as height */
-    object-fit: contain;
-    flex-shrink: 0;
-  }
-
-  .two-items {
-    gap: 20vw; /* More horizontal space between 2 buttons */
-    margin-top: 2vh; /* Extra vertical spacing above */
-    margin-bottom: 2vh; /* Extra spacing below */
-  }
-  </style>
+<head>  
+  <link rel="stylesheet" href="base.css">     
   <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <title>Options</title> 
 </head>
 
 <body onload='initialize()'>
-   <div class="bottom-container">
+  <section class="button-container">
+
     <!-- First row -->
     <div class="button-row two-items">
       <input type=image id="appPlaylistData" name="appPlaylistData" src='../renderer/assets/images/app data.png' onclick="PrepMessage('data')">      
-      <input type=image id="QRCode" name="QRCode" src='../renderer/assets/images/app qrcode.png' style="height:80px" onclick="location.href='/appQRCode';">      
+      <input type=image id="QRCode" name="QRCode" src='../renderer/assets/images/app qrcode.png' onclick="location.href='/appQRCode';">      
     </div>
 
     <!-- Second row -->
     <div class="button-row two-items">
-      <input type=image id="refresh" name="refresh" src='../renderer/assets/images/app refresh.png' style="height:80px" onclick="PrepMessage('refresh')">
-      <input type=image id="HiddenImages" name="HiddenImages" src='../renderer/assets/images/app unhide.png' style="height:80px">    
+      <input type=image id="refresh" name="refresh" src='../renderer/assets/images/app refresh.png'  onclick="PrepMessage('refresh')">
+      <input type=image id="HiddenImages" name="HiddenImages" src='../renderer/assets/images/app unhide.png' >    
     </div>
 
     <!-- Third row -->
     <div class="button-row two-items">
-      <input type=image id="editExif" name="editExif" src='app exif data.png' style="height:80px" onclick="location.href='/appItemMetaData';">
-      <input type=image id="appPlaylistSettings" name="appPlaylistSettings" src='../renderer/assets/images/app settings.png' style="height:80px" onclick="location.href='/appPlaylistSettings';">    
+      <input type=image id="editExif" name="editExif" src='app exif data.png' onclick="location.href='/appItemMetaData';">
+      <input type=image id="appPlaylistSettings" name="appPlaylistSettings" src='../renderer/assets/images/app settings.png' onclick="location.href='/appPlaylistSettings';">    
     </div>
 
     <!-- Fourth row -->
     <div class="button-row two-items">
-      <input type=image id="appPlaylists" name="appPlaylists" src='../renderer/assets/images/app new.png' style="height:80px" onclick="location.href='/appPlaylists';">
-      <input type=image id="MarkedFiles" name="MarkedFiles" src='../renderer/assets/images/app notifications.png' style="height:80px" onclick="location.href='/appMarkedFiles';">    
+      <input type=image id="appPlaylists" name="appPlaylists" src='../renderer/assets/images/app new.png' onclick="location.href='/appPlaylists';">
+      <input type=image id="MarkedFiles" name="MarkedFiles" src='../renderer/assets/images/app notifications.png'  onclick="location.href='/appMarkedFiles';">    
     </div>
     
     <!-- Fifth row -->
-     <div class="button-row"></div>
-      <input type=image id="home" name="home" src='home.png' style="height:80px" onclick="location.href='/';">
+     <div class="button-row">
+      <input type=image id="home" name="home" src='home.png' onclick="location.href='/';">
     </div>
-  </div>
+  
+  </section>
 
-</body>  
+
 <script type='text/javascript' src='appServer.js'></script>
 <script src="../../common/customAlert.js"></script> 
 <script>
@@ -147,5 +109,5 @@ let hideImagesState = 0; // 1 = hide, 0 = show
 
 
 </script>
-
+</body>  
 </html>

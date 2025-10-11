@@ -1,403 +1,398 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-  <link rel="stylesheet" href="base.css">     
-  <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
-  <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-</head>
+  <head>    
+    <link rel="stylesheet" href="base.css">     
+    <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>Edit Playlist</title>    
+  </head>
 
-<body onload="initialize()">
-  <header>
-    <h3 id="titleText">Edit Playlist</h3>  
-  </header>
-  <label for="selectedPlaylist">Playlist Name</label>
-  <div class="input-row">
-    <input type ="text" id="selectedPlaylist" name="selectedPlaylist" >  
-    <input type="image" class="help-icon" id="PlaylistNameInfo" name="PlaylistNameInfo" src="../renderer/assets/images/app help.png" onclick="GetHelpPlaylistNames()">
-  </div>  
-  <section id="playlist-folder-section">    
+  <body onload="initialize()">
+    <header>
+      <h3 id="titleText">Edit Playlist</h3>  
+    </header>
+
+    <label for="selectedPlaylist">Playlist Name</label>
     <div class="input-row">
-      <label>Playlist Folders</label>    
-      <input type="image" class="help-icon" id="help" name="help" src="../renderer/assets/images/app help.png" onclick="GetHelpFolders()">
-    </div>
+      <input type ="text" id="selectedPlaylist" name="selectedPlaylist" >  
+      <input type="image" class="help-icon" id="PlaylistNameInfo" name="PlaylistNameInfo" src="../renderer/assets/images/app help.png" onclick="GetHelpPlaylistNames()">
+    </div>  
+
+    <section>        
+      <div class="playlist-folder">
+        <label>Playlist Folders</label>    
+        <input type="image" class="help-icon" id="help" name="help" src="../renderer/assets/images/app help.png" onclick="GetHelpFolders()">    
+      </div>
+      <div class="scrollable-folder-table" id="folder-table-div" >
+        <table class="folder-table" id="FolderTable">
+          <colgroup>
+            <col class="folder-name">
+            <col class="folder-icon">
+          </colgroup>         
+        </table>    
+      </div>
+    </section>
+
+    <section>    
+      <label for="IncludeKeywords">Use Folders with Keywords</label>    
+      <div class="input-row">
+        <input type ="text" id="IncludeKeywords" name="IncludeKeywords" placeholder="(optional)" > 
+        <input type="image" class="help-icon" id="IncludeKeywordsInfo" name="IncludeKeywordsInfo" src="../renderer/assets/images/app help.png" onclick="GetHelpIncKeywords()">
+      </div>  
+      <label for="ExcludeKeywords">Do Not Use Folders with Keywords</label>    
+      <div class="input-row">
+        <input type="text" id="ExcludeKeywords" name="ExcludeKeywords" placeholder="(optional)" >
+        <input type="image" class="help-icon" id="ExcludeKeywordsInfo" name="ExcludeKeywordsInfo" src="../renderer/assets/images/app help.png" onclick="GetHelpExcKeywords()">   
+      </div>    
+    </section>
+
+    <section class="bottom-buttons">    
+      <button id="savePlaylist" name="savePlaylist"  onclick="SavePlaylist()">Save</button>
+      <button id="deletePlaylist" name="deletePlaylist"  onclick="deletePlaylist()">Delete</button>
+      <button id="cancelPlaylist" name="cancelPlaylist"  onclick="location.href='/appPlaylists';">Cancel</button>    
+    </section>
     
-    <div class="scrollable-folder-table" id="folder-table-div" >
-      <table class="folder-table" id="FolderTable">
-        <colgroup>
-          <col class="folder-name">
-          <col class="folder-icon">
-        </colgroup>         
-      </table>    
-    </div>
-  </section>
+  <script src="appServer.js"></script>
+  <script src="../../common/customAlert.js"></script> 
+  <script src="../../common/folderBrowser.js"></script>
+  <script>
 
-  <section id="playlist-options">
-    <label for="IncludeKeywords">Use Folders with Keywords</label>    
-    <input type ="text" id="IncludeKeywords" name="IncludeKeywords" placeholder="(optional)" > 
-    <input type="image" class="help-icon" id="IncludeKeywordsInfo" name="IncludeKeywordsInfo" src="../renderer/assets/images/app help.png" onclick="GetHelpIncKeywords()">
-  
-    <label for="ExcludeKeywords">Do Not Use Folders with Keywords</label>    
-    <input type="text" id="ExcludeKeywords" name="ExcludeKeywords" placeholder="(optional)" >
-    <input type="image" class="help-icon" id="ExcludeKeywordsInfo" name="ExcludeKeywordsInfo" src="../renderer/assets/images/app help.png" onclick="GetHelpExcKeywords()">   
-  </section>
+    let g_playlists;  // list of available playlists in  file
+    let g_selPLAYLIST = ""; // currently selected playlist 
+    let new_playlistDisplayName="";  // name to show on UI  
+    let directorylist = []; // list of directories to save in the new playlist
+    let PlaylistStatusFlag = ""; //create, edit, ""
 
-  <div class="bottom-buttons" >    
-    <button id="savePlaylist" name="savePlaylist"  onclick="SavePlaylist()">Save</button>
-    <button id="deletePlaylist" name="deletePlaylist"  onclick="deletePlaylist()">Delete</button>
-    <button id="cancelPlaylist" name="cancelPlaylist"  onclick="location.href='/appPlaylists';">Cancel</button>
-  </div>        
-  <!--
-  Modals for disabling inputs while database or playlists are updating
-  <div id="modalSavingCombined">
-    <div class="modal-content">
-      <span>Building Playlist</span>
-      <img src="../renderer/assets/images/copyfiles.png" alt="loading" >
-    </div>
-  </div>
--->
-
-<script src="appServer.js"></script>
-<script src="../../common/customAlert.js"></script> 
-<script src="../../common/folderBrowser.js"></script>
-<script>
-
-  let g_playlists;  // list of available playlists in  file
-  let g_selPLAYLIST = ""; // currently selected playlist 
-  let new_playlistDisplayName="";  // name to show on UI  
-  let directorylist = []; // list of directories to save in the new playlist
-  let PlaylistStatusFlag = ""; //create, edit, ""
-
-  const params = new URLSearchParams(window.location.search); // load data passed from appPlaylists.html
-  const selectedPlaylist = params.get("value"); // playlist passed from appPlaylists.html
+    const params = new URLSearchParams(window.location.search); // load data passed from appPlaylists.html
+    const selectedPlaylist = params.get("value"); // playlist passed from appPlaylists.html
 
 
-  
-  async function initialize() {    
-    returnData = await PrepMessage("app_readDB") //read all the playlists from the DB
-    const playlistFolderTable = document.getElementById("FolderTable");
-    g_playlists = returnData.playlists; // all playlist data in db, names and directories
-    g_selPLAYLIST=returnData.selplaylist; // currently selected playlist
-
-    if (selectedPlaylist == "playlist_"+returnData.selplaylist){        
-      UpdateUI("defaultPlaylistSelected");
-    }
-
-    if (selectedPlaylist != ""){ // no plyalist name passed, so create new playlist        
-      ParsePlaylistName(); 
-      UpdateUI("editPlaylist");        
-      let SelectedPlaylist = document.getElementById("selectedPlaylist").value        
-      let PlaylistDirs = g_playlists[selectedPlaylist];                
-      // Add new rows
-      PlaylistDirs.forEach(PlaylistDir => {
-        let newRow = playlistFolderTable.insertRow();
-        newRow.innerHTML = `<td>${PlaylistDir}</td> <td><img src="../renderer/assets/images/del.png"></td>`;
-      });     
-      const addRow = playlistFolderTable.insertRow();
-      addRow.innerHTML = "<tr><td style='font-weight: bold;'> click to add folder </td><td></td></tr>";
-      let scrollDiv = document.getElementById("folder-table-div"); // scroll to bottom of table
-      scrollDiv.scrollTop = scrollDiv.scrollHeight;                
-            
-    }else{
-      PlaylistStatusFlag = "create"; // set flag to create new playlist
-      UpdateUI("createPlaylist");
-      const addRow = playlistFolderTable.insertRow();
-      addRow.innerHTML = "<tr><td style='font-weight: bold;'> click to add folder </td><td></td></tr>";
-      let scrollDiv = document.getElementById("folder-table-div"); // scroll to bottom of table
-      scrollDiv.scrollTop = scrollDiv.scrollHeight;    
-    } 
-  }
-
-
-  
-  async function PrepMessage(payload){  
-    messagePayload = null;    
-    switch (payload){  
-      case "DeletePlaylist":        
-        messagePayload = {command: "DeletePlaylist",data: GetPlaylistName()};        
-      break;
-      case "NewPlaylist":      
-        data = {
-          playlistname: GetPlaylistName(),
-          playlistDir: directorylist,
-        };
-        messagePayload = {command: "NewPlaylist",data: data};
-        document.getElementById("modalSavingCombined").style.display = "flex";
-      break;
-      case "app_readDB":      
-        messagePayload = {command:"app_readDB", "data":null };
-      break;
-
-    }  
-    try {
-      // Await the response from the new, async makeRequest function.
-      returnData = await makeRequest("/app_sendrequest", messagePayload);
-      command = returnData.command;
-      data = returnData.data;
-      // Handle the response based on the command.
-      switch(messagePayload.command){
-        case "NewPlaylist":
-          if (data){                
-            ShowAlert("Playlist not created.\n\n  Attempted to created a playlist with no folders.\n\nThis may be caused by keywords in Use Folders with Keywords or Do Not Use Folders with Keywords fields", false).then((result) => {                                
-              document.getElementById("modalSavingCombined").style.display = "none";              
-            })
-          }else{                 
-            ShowAlert("Playlist successfully created", false).then((result) => {               
-              document.getElementById("modalSavingCombined").style.display = "none";    
-              location.href="/appPlaylists";               
-            })                
-          }           
-        break;
-        case "app_readDB":
-          return data;
-        break;
-        
-        default:          
-        break;
-      }      
-    } catch (error) {        
-      //ShowAlert("Error in html POST. "+ error, false).then((result) => {                  
-      //  })  
-    } 
-  }
-
-  function UpdateUI(action){
-    switch (action) {
-      case "savePlaylist":        
-        document.getElementById("deletePlaylist").disabled = false;
-        document.getElementById("cancelPlaylist").disabled = true;
-        document.getElementById("savePlaylist").disabled = true;           
-
-      break;
-      case "editPlaylist":        
-        document.getElementById("titleText").innerHTML = "<center>Edit Playlist</center>";    
-        document.getElementById("savePlaylist").disabled = true;
-        document.getElementById("deletePlaylist").disabled = false;        
-      break;
-      case "createPlaylist":         
-        document.getElementById("titleText").innerHTML = "<center>Create Playlist</center>";      
-        document.getElementById("deletePlaylist").hidden = true;
-        document.getElementById("savePlaylist").disabled = true;                             
-        document.getElementById("selectedPlaylist").value="";
-        document.getElementById("IncludeKeywords").value="";
-        document.getElementById("ExcludeKeywords").value="";                           
-      break;            
-      case "defaultPlaylistSelected":        
-        document.getElementById("deletePlaylist").hidden = true;        
-      break;
-    }
-  }
-
-  function GetHelpPlaylistNames(){
-    ShowAlert("Playlist names must be unique and must not contain spaces, dashes or other special characters.\n\nThe default Selected Playlist may not be deleted. ", false).then((result) => {      
-    })    
-  }
-  function GetHelpIncKeywords(){
-    ShowAlert("Optionally enter one or more keywords (separating multiple keywords with commas) to filter the 'Playlist Folders' in this playlist.\n\nFor example, if you enter 'vacat' within the 'Use Folders with Keywords' field, the playlist will identify folders that have names containing that term, such as 'Italy Vacation' or 'Vacation Home'. Once identified, only the digital content in those folders are included in the playlist.\n\nKeywords are not case sensitive and special characters are not allowed.\n\nIf no matches are found, the playlist will not be generated; make sure that at least one of the folder names in the 'Playlist Folders' folder paths has the entered term.", false).then((result) => {      
-    })
-  }
-  function GetHelpExcKeywords(){
-    ShowAlert("Optionally enter one or more keywords (separating multiple keywords with commas), to filter the 'Playlist Folders' in this playlist.\n\nWhen a match is found, the digital contents of that folder will be *excluded* from the playlist. For example, if you enter 'Georg' within the 'Do Not Use Folders with Keywords' field, the playlist will identify folders that have names containing that term, such as 'George Birthday' or 'Georgia 1993'. Once identified, all the digital content in those folders will not appear in the playlist.\n\nKeywords are not case sensitive and special characters are not allowed.\n\nIf an exclusion keyword is found in all folder names, the playlist is not generated.", false).then((result) => {      
-    })
-  }
-  function GetHelpAddFolder(){
-    ShowAlert("Type the folder path directly or click the folder path to progress in the hierarchy to find the desired folder. Click 'Save' to add the folder path to the playlist. Use the 'Back' button to move up the current folder hierarchy path.  Use 'Cancel' to exit without adding a folder to the playlist", false).then((result) => {      
-    })
-  }
-
-  function GetHelpFolders(){
-    ShowAlert("You must select at least one specific folder to include in the playlist. The photos and videos contained in the selected folder(s) and all its subfolders will be included in the playlist content, unless you filter using the keywords fields.\n\nThis table shows all folders selected for this playlist. Folders are added by clicking 'click to add folder' and following the instructions on the folder browser window. If an added folder needs to be removed, click the trash bin icon next to the added folder.", false).then((result) => {      
-    })
-  }
-
-
-  // ensure new playlist name is formatted correctly and unique
-  document.getElementById("selectedPlaylist").addEventListener("change", function (e) {
-    let new_name = document.getElementById("selectedPlaylist").value;
-    new_name = new_name.replace(/[^a-zA-Z0-9,]/g, "");  // get rid of special characters
-    new_name = new_name.replace(/,+$/, ""); // get rid of trim trailing commas
-    document.getElementById("selectedPlaylist").value = new_name;         
-    TestPlaylistName();
-  });
-
-    // ensure keywords are formatted correctly
-  document.getElementById("IncludeKeywords").addEventListener("change", function (e) {
-    let includeKeywords = e.target.value;
-    // Sanitize the input
-    includeKeywords = includeKeywords.replace(/[^a-zA-Z0-9,]/g, "");
-    includeKeywords = includeKeywords.split(",").filter(item => item.trim() !== "").join(",");
-    // Update the input field
-    e.target.value = includeKeywords;
-    // Call the playlist test function
-    TestPlaylistName();
-  });
     
-  // ensure keywords are formatted correctly
-  document.getElementById("ExcludeKeywords").addEventListener("change", function (e) {
-    let excludeKeywords = e.target.value;
-    // Sanitize the input
-    excludeKeywords = excludeKeywords.replace(/[^a-zA-Z0-9,]/g, "");
-    excludeKeywords = excludeKeywords.split(",").filter(item => item.trim() !== "").join(",");
-    // Update the input field
-    e.target.value = excludeKeywords;
-    // Call the playlist test function
-    TestPlaylistName();
-  });
+    async function initialize() {    
+      returnData = await PrepMessage("app_readDB") //read all the playlists from the DB
+      const playlistFolderTable = document.getElementById("FolderTable");
+      g_playlists = returnData.playlists; // all playlist data in db, names and directories
+      g_selPLAYLIST=returnData.selplaylist; // currently selected playlist
 
-  
-  /* new code segments start here*/
-  function TestPlaylistName(){        
-    new_playlistSaveName = GetPlaylistName(); // get the name of the playlist
-    duplicateplaylist = TestDuplicatePlaylistName(new_playlistSaveName);
-    if (PlaylistStatusFlag == "create"){
-      if (!duplicateplaylist && new_playlistSaveName !== ""){         
-        document.getElementById("PlaylistNameInfo").src = "../renderer/assets/images/app help.png"; 
-        document.getElementById("selectedPlaylist").style.backgroundColor = "";                       
+      if (selectedPlaylist == "playlist_"+returnData.selplaylist){        
+        UpdateUI("defaultPlaylistSelected");
+      }
+
+      if (selectedPlaylist != ""){ // no plyalist name passed, so create new playlist        
+        ParsePlaylistName(); 
+        UpdateUI("editPlaylist");        
+        let SelectedPlaylist = document.getElementById("selectedPlaylist").value        
+        let PlaylistDirs = g_playlists[selectedPlaylist];                
+        // Add new rows
+        PlaylistDirs.forEach(PlaylistDir => {
+          let newRow = playlistFolderTable.insertRow();
+          newRow.innerHTML = `<td>${PlaylistDir}</td> <td><img src="../renderer/assets/images/del.png"></td>`;
+        });     
+        const addRow = playlistFolderTable.insertRow();
+        addRow.innerHTML = "<tr><td style='font-weight: bold;'> click to add folder </td><td></td></tr>";
+        let scrollDiv = document.getElementById("folder-table-div"); // scroll to bottom of table
+        scrollDiv.scrollTop = scrollDiv.scrollHeight;                
+              
       }else{
-        document.getElementById("PlaylistNameInfo").src = "../renderer/assets/images/warning.png";
-        document.getElementById("selectedPlaylist").style.backgroundColor = "lightyellow";            
-      }      
-    }else{                  
-      document.getElementById("deletePlaylist").disabled = true;           
-    }
-    TestEnableSavebutton();  
-  }
-
-  function GetPlaylistName(){
-    new_playlistSaveName = document.getElementById("selectedPlaylist").value.toLowerCase(); 
-    if (new_playlistSaveName == ""){ // if no name, return empty string
-      return "";
-    }else{
-      let includeKeywords = document.getElementById("IncludeKeywords").value.toLowerCase(); 
-      let excludeKeywords = document.getElementById("ExcludeKeywords").value.toLowerCase();
-      excludeKeywords = excludeKeywords.split(",").map(item => item.trim()).filter(item => item !== "").map(item => "$" + item).join("_");
-      includeKeywords = includeKeywords.split(",").filter(item => item.trim() !== "").join("_"); 
-      new_playlistSaveName = "playlist_" + new_playlistSaveName;  
-      new_playlistSaveName = new_playlistSaveName.toLowerCase(); // ensure all names are lower case  
-      if (includeKeywords) {
-        new_playlistSaveName += "_" + includeKeywords;
+        PlaylistStatusFlag = "create"; // set flag to create new playlist
+        UpdateUI("createPlaylist");
+        const addRow = playlistFolderTable.insertRow();
+        addRow.innerHTML = "<tr><td style='font-weight: bold;'> click to add folder </td><td></td></tr>";
+        let scrollDiv = document.getElementById("folder-table-div"); // scroll to bottom of table
+        scrollDiv.scrollTop = scrollDiv.scrollHeight;    
       } 
-      if (excludeKeywords) {
-        new_playlistSaveName += "_" + excludeKeywords;
-      }        
-      return new_playlistSaveName;
     }
-  }
 
-  function TestDuplicatePlaylistName(new_playlistSaveName){    
-    playlistNames = Object.keys(g_playlists); // just array of playlist names      
-    //test for duplicate plyalist name
-    for (let i = 0; i < playlistNames.length; i++) {
-      if (playlistNames[i].toLowerCase() === new_playlistSaveName) {         
-        return true;                   
+
+    
+    async function PrepMessage(payload){  
+      messagePayload = null;    
+      switch (payload){  
+        case "DeletePlaylist":        
+          messagePayload = {command: "DeletePlaylist",data: GetPlaylistName()};        
+        break;
+        case "NewPlaylist":      
+          data = {
+            playlistname: GetPlaylistName(),
+            playlistDir: directorylist,
+          };
+          messagePayload = {command: "NewPlaylist",data: data};
+          ShowSavingModal(true, "Saving playlists...");  // from customAlert.js        
+        break;
+        case "app_readDB":      
+          messagePayload = {command:"app_readDB", "data":null };
+        break;
+
+      }  
+      try {
+        // Await the response from the new, async makeRequest function.
+        returnData = await makeRequest("/app_sendrequest", messagePayload);
+        command = returnData.command;
+        data = returnData.data;
+        // Handle the response based on the command.
+        switch(messagePayload.command){
+          case "NewPlaylist":
+            if (data){                
+              ShowAlert("Playlist not created.\n\n  Attempted to created a playlist with no folders.\n\nThis may be caused by keywords in Use Folders with Keywords or Do Not Use Folders with Keywords fields", false).then((result) => {                                
+                ShowSavingModal(false); // from customAlert.js        
+              })
+            }else{                 
+              ShowAlert("Playlist successfully created", false).then((result) => {               
+                ShowSavingModal(false); // from customAlert.js        
+                location.href="/appPlaylists";               
+              })                
+            }           
+          break;
+          case "app_readDB":
+            return data;
+          break;
+          
+          default:          
+          break;
+        }      
+      } catch (error) {        
+        //ShowAlert("Error in html POST. "+ error, false).then((result) => {                  
+        //  })  
+      } 
+    }
+
+    function UpdateUI(action){
+      switch (action) {
+        case "savePlaylist":        
+          document.getElementById("deletePlaylist").disabled = false;
+          document.getElementById("cancelPlaylist").disabled = true;
+          document.getElementById("savePlaylist").disabled = true;           
+
+        break;
+        case "editPlaylist":        
+          document.getElementById("titleText").innerHTML = "<center>Edit Playlist</center>";    
+          document.getElementById("savePlaylist").disabled = true;
+          document.getElementById("deletePlaylist").disabled = false;        
+        break;
+        case "createPlaylist":         
+          document.getElementById("titleText").innerHTML = "<center>Create Playlist</center>";      
+          document.getElementById("deletePlaylist").hidden = true;
+          document.getElementById("savePlaylist").disabled = true;                             
+          document.getElementById("selectedPlaylist").value="";
+          document.getElementById("IncludeKeywords").value="";
+          document.getElementById("ExcludeKeywords").value="";                           
+        break;            
+        case "defaultPlaylistSelected":        
+          document.getElementById("deletePlaylist").hidden = true;        
+        break;
       }
     }
-    return false;
-  }
+
+    function GetHelpPlaylistNames(){
+      ShowAlert("Playlist names must be unique and must not contain spaces, dashes or other special characters.\n\nThe default Selected Playlist may not be deleted. ", false).then((result) => {      
+      })    
+    }
+    function GetHelpIncKeywords(){
+      ShowAlert("Optionally enter one or more keywords (separating multiple keywords with commas) to filter the 'Playlist Folders' in this playlist.\n\nFor example, if you enter 'vacat' within the 'Use Folders with Keywords' field, the playlist will identify folders that have names containing that term, such as 'Italy Vacation' or 'Vacation Home'. Once identified, only the digital content in those folders are included in the playlist.\n\nKeywords are not case sensitive and special characters are not allowed.\n\nIf no matches are found, the playlist will not be generated; make sure that at least one of the folder names in the 'Playlist Folders' folder paths has the entered term.", false).then((result) => {      
+      })
+    }
+    function GetHelpExcKeywords(){
+      ShowAlert("Optionally enter one or more keywords (separating multiple keywords with commas), to filter the 'Playlist Folders' in this playlist.\n\nWhen a match is found, the digital contents of that folder will be *excluded* from the playlist. For example, if you enter 'Georg' within the 'Do Not Use Folders with Keywords' field, the playlist will identify folders that have names containing that term, such as 'George Birthday' or 'Georgia 1993'. Once identified, all the digital content in those folders will not appear in the playlist.\n\nKeywords are not case sensitive and special characters are not allowed.\n\nIf an exclusion keyword is found in all folder names, the playlist is not generated.", false).then((result) => {      
+      })
+    }
+    function GetHelpAddFolder(){
+      ShowAlert("Type the folder path directly or click the folder path to progress in the hierarchy to find the desired folder. Click 'Save' to add the folder path to the playlist. Use the 'Back' button to move up the current folder hierarchy path.  Use 'Cancel' to exit without adding a folder to the playlist", false).then((result) => {      
+      })
+    }
+
+    function GetHelpFolders(){
+      ShowAlert("You must select at least one specific folder to include in the playlist. The photos and videos contained in the selected folder(s) and all its subfolders will be included in the playlist content, unless you filter using the keywords fields.\n\nThis table shows all folders selected for this playlist. Folders are added by clicking 'click to add folder' and following the instructions on the folder browser window. If an added folder needs to be removed, click the trash bin icon next to the added folder.", false).then((result) => {      
+      })
+    }
 
 
-  function TestEnableSavebutton(){    
-    new_playlistSaveName = GetPlaylistName(); // get the name of the playlist
-    FolderTablelen = document.getElementById("FolderTable").rows.length;         
-    if (PlaylistStatusFlag == "create"){
-      if (FolderTablelen > 1 && new_playlistSaveName != "" && !TestDuplicatePlaylistName(new_playlistSaveName)){      
-        document.getElementById("savePlaylist").disabled = false;                 
-      } else{
-        document.getElementById("savePlaylist").disabled = true;      
+    // ensure new playlist name is formatted correctly and unique
+    document.getElementById("selectedPlaylist").addEventListener("change", function (e) {
+      let new_name = document.getElementById("selectedPlaylist").value;
+      new_name = new_name.replace(/[^a-zA-Z0-9,]/g, "");  // get rid of special characters
+      new_name = new_name.replace(/,+$/, ""); // get rid of trim trailing commas
+      document.getElementById("selectedPlaylist").value = new_name;         
+      TestPlaylistName();
+    });
+
+      // ensure keywords are formatted correctly
+    document.getElementById("IncludeKeywords").addEventListener("change", function (e) {
+      let includeKeywords = e.target.value;
+      // Sanitize the input
+      includeKeywords = includeKeywords.replace(/[^a-zA-Z0-9,]/g, "");
+      includeKeywords = includeKeywords.split(",").filter(item => item.trim() !== "").join(",");
+      // Update the input field
+      e.target.value = includeKeywords;
+      // Call the playlist test function
+      TestPlaylistName();
+    });
+      
+    // ensure keywords are formatted correctly
+    document.getElementById("ExcludeKeywords").addEventListener("change", function (e) {
+      let excludeKeywords = e.target.value;
+      // Sanitize the input
+      excludeKeywords = excludeKeywords.replace(/[^a-zA-Z0-9,]/g, "");
+      excludeKeywords = excludeKeywords.split(",").filter(item => item.trim() !== "").join(",");
+      // Update the input field
+      e.target.value = excludeKeywords;
+      // Call the playlist test function
+      TestPlaylistName();
+    });
+
+    
+    /* new code segments start here*/
+    function TestPlaylistName(){        
+      new_playlistSaveName = GetPlaylistName(); // get the name of the playlist
+      duplicateplaylist = TestDuplicatePlaylistName(new_playlistSaveName);
+      if (PlaylistStatusFlag == "create"){
+        if (!duplicateplaylist && new_playlistSaveName !== ""){         
+          document.getElementById("PlaylistNameInfo").src = "../renderer/assets/images/app help.png"; 
+          document.getElementById("selectedPlaylist").style.backgroundColor = "";                       
+        }else{
+          document.getElementById("PlaylistNameInfo").src = "../renderer/assets/images/warning.png";
+          document.getElementById("selectedPlaylist").style.backgroundColor = "lightyellow";            
+        }      
+      }else{                  
+        document.getElementById("deletePlaylist").disabled = true;           
       }
-    }else{
-      if (FolderTablelen > 1 && new_playlistSaveName != ""){
-        document.getElementById("savePlaylist").disabled = false;                 
+      TestEnableSavebutton();  
+    }
+
+    function GetPlaylistName(){
+      new_playlistSaveName = document.getElementById("selectedPlaylist").value.toLowerCase(); 
+      if (new_playlistSaveName == ""){ // if no name, return empty string
+        return "";
       }else{
-      document.getElementById("savePlaylist").disabled = true;;  
-      }
-    }
-  }
-
-  document.getElementById("FolderTable").addEventListener("click", function (e) {
-    if ((e.target.tagName === "TD" || e.target.tagName === "IMG") && e.target.tagName !== "TH"){
-      const clickedCell = e.target.closest("TD");  // if the image is clicked, get the parent TD
-      const col = clickedCell.cellIndex;
-      const row = clickedCell.parentElement.rowIndex;;              
-      const len = document.getElementById("FolderTable").rows.length - 1;
-      if (col == 1 && row != len) {
-        clickedCell.parentElement.remove();             
-        TestEnableSavebutton();
-        // if (len == 1) {
-            //document.getElementById("savePlaylist").disabled = true;
-          //}
-      } else if (row == len) {
-        openModal(function(selectedDir) {          
-          const playlistDirTable = document.getElementById("FolderTable");
-          playlistDirTable.deleteRow(playlistDirTable.rows.length - 1);
-          const newRow = playlistDirTable.insertRow();
-          newRow.innerHTML = `<td>${selectedDir}</td><td><img src="../renderer/assets/images/del.png"></td>`;
-          const clickToAddRow = playlistDirTable.insertRow();
-          clickToAddRow.innerHTML = "<td style='font-weight: bold;'> click to add folder </td><td></td>";
-          const scrollDiv = document.getElementById("folder-table-div"); // scroll to bottom of table
-          scrollDiv.scrollTop = scrollDiv.scrollHeight;
-        TestEnableSavebutton(); // re-enable save button if needed     
-        });
-        
-      }
-    }
-  });
-  
-  async function SavePlaylist(){       
-    const rows = document.querySelectorAll("#FolderTable tr");
-    if (rows.length > 1){     
-      rows.forEach((row, index) => {
-        const cells = row.querySelectorAll("td");
-        cells.forEach((cell, index2) => {
-          if (index2 == 0 && cell.textContent != " click to add folder "){
-            directorylist.push(cell.textContent);          
-          }
-        });            
-      });      
-    }
-    await PrepMessage("DeletePlaylist");
-    PrepMessage("NewPlaylist"); // send the request to create a new playlist                       
-  }
-
-  function deletePlaylist(){
-    ShowAlert("Delete selected playlist?", true).then((result) => {  
-      if (result == "ok"){
-        PrepMessage("DeletePlaylist");  
-        location.href="/appPlaylists";       
-      }      
-    });    
-  }
-
-
-  function ParsePlaylistName(){    
-    const parts = selectedPlaylist.split("_");  //selectedPlaylist is passed in dynamically initizlied at beginning of script
-    // First part is always the playlist name
-    const PlaylistName = parts[1];
-    document.getElementById("selectedPlaylist").value = PlaylistName;
-
-    const includeStrings = [];
-    const excludeStrings = [];
-
-    // Loop through the remaining parts
-    for (let i = 2; i < parts.length; i++) {
-      const part = parts[i];
-      if (part.startsWith("$")) {
-        excludeStrings.push(part.slice(1)); // remove the $ prefix
-      } else {
-        includeStrings.push(part);
+        let includeKeywords = document.getElementById("IncludeKeywords").value.toLowerCase(); 
+        let excludeKeywords = document.getElementById("ExcludeKeywords").value.toLowerCase();
+        excludeKeywords = excludeKeywords.split(",").map(item => item.trim()).filter(item => item !== "").map(item => "$" + item).join("_");
+        includeKeywords = includeKeywords.split(",").filter(item => item.trim() !== "").join("_"); 
+        new_playlistSaveName = "playlist_" + new_playlistSaveName;  
+        new_playlistSaveName = new_playlistSaveName.toLowerCase(); // ensure all names are lower case  
+        if (includeKeywords) {
+          new_playlistSaveName += "_" + includeKeywords;
+        } 
+        if (excludeKeywords) {
+          new_playlistSaveName += "_" + excludeKeywords;
+        }        
+        return new_playlistSaveName;
       }
     }
 
-    // Join with commas
-    const IncludeString = includeStrings.join(",");
-    const ExcludeString = excludeStrings.join(",");
-    document.getElementById("IncludeKeywords").value = IncludeString;
-    document.getElementById("ExcludeKeywords").value = ExcludeString;       
-  }
+    function TestDuplicatePlaylistName(new_playlistSaveName){    
+      playlistNames = Object.keys(g_playlists); // just array of playlist names      
+      //test for duplicate plyalist name
+      for (let i = 0; i < playlistNames.length; i++) {
+        if (playlistNames[i].toLowerCase() === new_playlistSaveName) {         
+          return true;                   
+        }
+      }
+      return false;
+    }
 
 
-</script>
-</body>
+    function TestEnableSavebutton(){    
+      new_playlistSaveName = GetPlaylistName(); // get the name of the playlist
+      FolderTablelen = document.getElementById("FolderTable").rows.length;         
+      if (PlaylistStatusFlag == "create"){
+        if (FolderTablelen > 1 && new_playlistSaveName != "" && !TestDuplicatePlaylistName(new_playlistSaveName)){      
+          document.getElementById("savePlaylist").disabled = false;                 
+        } else{
+          document.getElementById("savePlaylist").disabled = true;      
+        }
+      }else{
+        if (FolderTablelen > 1 && new_playlistSaveName != ""){
+          document.getElementById("savePlaylist").disabled = false;                 
+        }else{
+        document.getElementById("savePlaylist").disabled = true;;  
+        }
+      }
+    }
+
+    document.getElementById("FolderTable").addEventListener("click", function (e) {
+      if ((e.target.tagName === "TD" || e.target.tagName === "IMG") && e.target.tagName !== "TH"){
+        const clickedCell = e.target.closest("TD");  // if the image is clicked, get the parent TD
+        const col = clickedCell.cellIndex;
+        const row = clickedCell.parentElement.rowIndex;;              
+        const len = document.getElementById("FolderTable").rows.length - 1;
+        if (col == 1 && row != len) {
+          clickedCell.parentElement.remove();             
+          TestEnableSavebutton();
+          // if (len == 1) {
+              //document.getElementById("savePlaylist").disabled = true;
+            //}
+        } else if (row == len) {
+          openModal(function(selectedDir) {          
+            const playlistDirTable = document.getElementById("FolderTable");
+            playlistDirTable.deleteRow(playlistDirTable.rows.length - 1);
+            const newRow = playlistDirTable.insertRow();
+            newRow.innerHTML = `<td>${selectedDir}</td><td><img src="../renderer/assets/images/del.png"></td>`;
+            const clickToAddRow = playlistDirTable.insertRow();
+            clickToAddRow.innerHTML = "<td style='font-weight: bold;'> click to add folder </td><td></td>";
+            const scrollDiv = document.getElementById("folder-table-div"); // scroll to bottom of table
+            scrollDiv.scrollTop = scrollDiv.scrollHeight;
+          TestEnableSavebutton(); // re-enable save button if needed     
+          });
+          
+        }
+      }
+    });
+    
+    async function SavePlaylist(){       
+      const rows = document.querySelectorAll("#FolderTable tr");
+      if (rows.length > 1){     
+        rows.forEach((row, index) => {
+          const cells = row.querySelectorAll("td");
+          cells.forEach((cell, index2) => {
+            if (index2 == 0 && cell.textContent != " click to add folder "){
+              directorylist.push(cell.textContent);          
+            }
+          });            
+        });      
+      }
+      await PrepMessage("DeletePlaylist");
+      PrepMessage("NewPlaylist"); // send the request to create a new playlist                       
+    }
+
+    function deletePlaylist(){
+      ShowAlert("Delete selected playlist?", true).then((result) => {  
+        if (result == "ok"){
+          PrepMessage("DeletePlaylist");  
+          location.href="/appPlaylists";       
+        }      
+      });    
+    }
+
+
+    function ParsePlaylistName(){    
+      const parts = selectedPlaylist.split("_");  //selectedPlaylist is passed in dynamically initizlied at beginning of script
+      // First part is always the playlist name
+      const PlaylistName = parts[1];
+      document.getElementById("selectedPlaylist").value = PlaylistName;
+
+      const includeStrings = [];
+      const excludeStrings = [];
+
+      // Loop through the remaining parts
+      for (let i = 2; i < parts.length; i++) {
+        const part = parts[i];
+        if (part.startsWith("$")) {
+          excludeStrings.push(part.slice(1)); // remove the $ prefix
+        } else {
+          includeStrings.push(part);
+        }
+      }
+
+      // Join with commas
+      const IncludeString = includeStrings.join(",");
+      const ExcludeString = excludeStrings.join(",");
+      document.getElementById("IncludeKeywords").value = IncludeString;
+      document.getElementById("ExcludeKeywords").value = ExcludeString;       
+    }
+
+  </script>
+  </body>
 </html>

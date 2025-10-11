@@ -1,85 +1,83 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
-<head>
-  <link rel='stylesheet' href='WebApp.css'>     
-  <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
-  <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
-</head>
+  <head>
+    <link rel="stylesheet" href="base.css">     
+    <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>Configuration Settings</title>      
+  </head>
 
-<body id="appplaylistsettings" onload="initialize()">  
-  <p class="titleStyle">Configuration Settings</p>
-  <label for="playlist_name">Current Playlist</label>  
-  <br>
-  <select name ="playlist_name" id="playlist_name" ></select>  
-  <p></p>
-  <label for="baseDELAY">Item Display Time</label>  
-  <br>
-  <select id="baseDELAY" name="baseDELAY" >    
-    <option value="5000">5 seconds</option>
-    <option value="10000">10 seconds</option>
-    <option value="15000">15 seconds</option>
-    <option value="20000">20 seconds</option>
-    <option value="30000">30 seconds</option>    
-  </select>
-  <br>
-  <br>
-  <label for="preloadNUM">Items to Queue</label>  
-  <br>
-  <select id="preloadNUM" name="preloadNUM" onchange ='prefetchcheck()' >
-    <option value="1">1 </option>  
-    <option value="5">5 </option>  
-    <option value="10">10 </option>
-    <option value="20">20 </option>
-    <option value="30">30 </option>     
-  </select>
-  <br>
-  <br>
-  <label for="prefetchNUM">Items per Folder to Queue</label>  
-  <select id="prefetchNUM" name="prefetchNUM" onchange ='prefetchcheck()' >
-    <option value="1">1 </option>      
-    <option value="5">5 </option>
-    <option value="10">10 </option>        
-  </select>  
-  <br>
-  <p></p>            
-  <label for="AppStartDirectory">Top Item Folder</label>
-  <br>
-  <input readonly class= "startDirectory" type="text" id="AppStartDirectory" name="AppStartDirectory"/>
+  <body onload="initialize()">  
+    <header>
+      <h3 id="titleText">Configuration Settings</h3>  
+    </header>
+    
+    <section class="input-select-settings" >
+      <label for="playlist_name">Current Playlist</label>                     
+      <select name ="playlist_name" id="playlist_name" ></select>              
 
-  <p></p>
-  <label>Pause loading new items between:</label>
-  <br>
-  <label for="StartTime">Start</label>
-  <select style="width:100px;" id="StartTime"></select>
-  <label  style="padding-left:10px" for="StopTime">End</label>
-  <select style="width:100px;" id="StopTime"></select>  
-  <p></p>    
-  <input type="checkbox" id="nightlybuild" name="nightlyrebuild">
-  <label for="nightlybuild">Refresh playlists nightly</label>  
-  <p></p>    
-  <div class="bottom-buttons"  >
-    <button id="accept" name="accept"  onclick="WriteDB()">Save</button>
-    <button id="rebuildAll" name="rebuildAll"  onclick="RebuildAll()">Save & Refresh</button>
-    <button id="cancel" name="cancel" onclick="location.href='/appOptions';">Cancel</button>
-  </div>
+      <label for="baseDELAY">Item Display Time</label>            
+      <select  id="baseDELAY" name="baseDELAY" >    
+        <option value="5000">5 seconds</option>
+        <option value="10000">10 seconds</option>
+        <option value="15000">15 seconds</option>
+        <option value="20000">20 seconds</option>
+        <option value="30000">30 seconds</option>    
+      </select>
+          
+      <label for="preloadNUM">Items to Queue</label>  
+      <select id="preloadNUM" name="preloadNUM" onchange ='prefetchcheck()' >
+        <option value="1">1 </option>  
+        <option value="5">5 </option>  
+        <option value="10">10 </option>
+        <option value="20">20 </option>
+        <option value="30">30 </option>     
+      </select>
 
-  <!-- Modals for disabling inputs while database or playlists are updating-->    
-  <div id="modalSavingCombined">
-    <div class="modal-content">
-      <span>Rebuilding Playlists and updating configuration settings</span>
-      <img src="../renderer/assets/images/copyfiles.png" alt="loading" >
+      <label for="prefetchNUM">Items per Folder to Queue</label>  
+      <select id="prefetchNUM" name="prefetchNUM" onchange ='prefetchcheck()' >
+        <option value="1">1 </option>      
+        <option value="5">5 </option>
+        <option value="10">10 </option>        
+      </select>  
+
+      <label for="AppStartDirectory">Top Item Folder</label>      
+      <input readonly type="text" id="AppStartDirectory" name="AppStartDirectory"/>
+    </section>
+
+    <section class="pause-loading">      
+
+      <label class="pause-label">Pause loading new items between:</label>      
+      
+      <div class="pause-times">
+        <label for="StartTime">Start</label>
+        <select id="StartTime"></select>
+
+        <label  for="StopTime">End</label>
+        <select id="StopTime"></select>  
+      </div>
+    
+    <div class="pause-rebuild">        
+      <input type="checkbox" id="nightlybuild" name="nightlyrebuild">
+      <label class="pause-label"for="nightlybuild">Refresh playlists nightly</label>        
     </div>
-  </div>
+    </section>
 
+    <section class="bottom-3buttons">               
+      <button id="accept" name="accept"  onclick="WriteDB()">Save</button>
+      <button id="rebuildAll" name="rebuildAll"  onclick="RebuildAll()">Save & Refresh</button>
+      <button id="cancel" name="cancel" onclick="location.href='/appOptions';">Cancel</button>
+    </section>
 
-</body>
-<script type='text/javascript' src='appServer.js'></script>
-<script src="../../common/customAlert.js"></script> 
-<script src="../../common/folderBrowser.js"></script>
-<script>
+  </section>
+  
+  <script type='text/javascript' src='appServer.js'></script>
+  <script src="../../common/customAlert.js"></script> 
+  <script src="../../common/folderBrowser.js"></script>
+  <script>
 
 
 // all UI elements
@@ -122,7 +120,7 @@ async function PrepMessage(payload){
       messagePayload = {command: "ImageDir", data: SubDir}; 
     break;
     case 'appRebuildAll': 
-      document.getElementById('modalSavingCombined').style.display = 'flex';
+      ShowSavingModal(true, "Rebuilding playlists...");  // from customAlert.js      
       messagePayload = {command:"appRebuildAll", data:null };
     break;
     case 'ImageDir':
@@ -162,11 +160,11 @@ async function PrepMessage(payload){
       break;
       case 'appRebuildAll':        
         if (data.data){           
-          document.getElementById('modalSavingCombined').style.display = 'none';
+                ShowSavingModal(false);  // from customAlert.js     
           await ShowAlert("Error rebuilding one or more Playlists", false);
         } else {
-          document.getElementById('modalSavingCombined').style.display = 'none';
-          await ShowAlert("Update successfull", false);          
+          ShowSavingModal(false);  // from customAlert.js               
+          await ShowAlert("Update successful", false);          
           location.href='/appOptions';
         } 
       break;
@@ -308,9 +306,6 @@ function WriteUI(data){
   StopTime.value = data.stopPauseTime;
 }
 
-
-
-
 </script>
-
+</body>
 </html>

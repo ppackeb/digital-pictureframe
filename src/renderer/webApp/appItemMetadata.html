@@ -1,86 +1,39 @@
 
 <!DOCTYPE html>
 <html>
-
-<head>
-  <style>
-
-    html, body {
-      height: 100%;
-      margin: 5px;
-      padding: 5px;
-      box-sizing: border-box;
-      font-family: Arial, sans-serif;
-      font-size: 20px;
-      line-height: 1.2;
-    }
-
-  * {
-      box-sizing: inherit;
-    }
-
-  body {
-    padding-bottom: 80px; /* makes space for bottom-buttons so they don’t overlap content */
-  }
-
-  input, button, select, textarea {
-    font-family: inherit;
-    font-size: inherit;
-    line-height: inherit;
-  }
-
-  .bottom-buttons {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 60px;
-    padding: 10px 0;
-    background-color: white;    
-  }
-
-  textarea{    
-    width: 95%;
-    height: 200px;
-    padding: 5px;
-    box-sizing: border-box;
-    border: 2px solid #ccc;
-    border-radius: 4px;    
-    resize: none;
-  }
-
-
-  </style>
-
-  <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <head>    
+    <link rel="stylesheet" href="base.css">     
+    <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <title>Item Information</title>    
 </head>
   
 
 <body onload='initialize()'>
-  <b><center>Item Info</center></b>
-  <div>
-    <label for="newComments">Comments</label><br>
-    <textarea id="newComments" width="100%"></textarea>
-  </div>
-  <p></p>
-  <p></p>
-  <div>    
-    <input type="checkbox" id="hiddenCheckbox" >
-    <label for="hiddenCheckbox">Sensitive Item</label>
-  </div>
-  <p></p>
-  NOTE: Saved changes are immediately applied to the item file, but are not reflected in the currently displayed item until it is either refreshed nightly or manually via Configuration Settings.
-  <div class="bottom-buttons">    
-    <button id="accept" name="accept" style="height:40px; width:120px;"  filter:grayscale(100%);" disabled onclick="SaveChanges()">Save</button>
-    <button id="home" name="home" style="height:40px; width:120px;"  onclick="cancel()">Cancel</button>
-  </div>     
+  <header>
+    <h3 id="titleText">Item Information</h3>  
+  </header>
+  
+  <section class="metadata-entry">
+    <label for="newComments">Comments</label>
+    <textarea id="newComments" ></textarea>        
+    <div class="metadata-hidden">
+      <input type="checkbox" id="hiddenCheckbox" >
+      <label for="hiddenCheckbox">Sensitive Item</label>    
+    </div>
+    <p>
+      NOTE: Saved changes are immediately applied to the item file, but are not reflected in the currently displayed item until it is either refreshed nightly or manually via Configuration Settings.
+    </p>
+  </section>
+
+  <section class="bottom-buttons">    
+    <button id="accept" name="accept" onclick="SaveChanges()">Save</button>
+    <button id="home" name="home" onclick="cancel()">Cancel</button>
+  </section>     
 
    
-</body> 
 <script type='text/javascript' src='appServer.js'></script>
 <script src="../../common/customAlert.js"></script> 
 <script>
@@ -92,7 +45,9 @@
   let initialComments = "";
   let initialHidden = false;
 
-  async function initialize(){        
+  async function initialize(){  
+      document.getElementById('accept').disabled = true;     
+      document.getElementById('accept').style.filter = "grayscale(100%)";              
       ImageEXIFdata = await PrepMessage('AppGetCurrentDisplayImageData');      
       if (ImageEXIFdata != null) {            
         const isSupported = ['.jpeg', '.jpg', '.mp4'].some(ext => ImageEXIFdata.ImagePath.toLowerCase().endsWith(ext));    
@@ -126,7 +81,7 @@
     location.href = '/appOptions';
   } 
 
-  function checkForChanges() {
+  function checkForChanges() {     
     const acceptBtn = document.getElementById('accept');
     const currentComments = newComments.value.trim();
     const currentHidden = hiddenCheckbox.checked;
@@ -183,5 +138,5 @@
 
 
 </script>
-
+</body>
 </html>

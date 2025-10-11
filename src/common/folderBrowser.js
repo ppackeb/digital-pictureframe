@@ -80,8 +80,14 @@ the calling html file before folderBrowser.js
 #dir_table {
   width: 100%;
 }
+
 tr.grey th {
   background-color: white;
+}
+
+/* alternating row colors */
+tr:nth-child(even) {
+  background-color: #f9f9f9;
 }
 
 /* Modal Overlay */
