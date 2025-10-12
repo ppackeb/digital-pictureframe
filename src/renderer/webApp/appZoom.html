@@ -1,75 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
-<head>
-  <style> 
-  body, html {
-    height: 100%;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    align-items: center;
-    background-color: white;
-    overflow: hidden;
-    touch-action: none;
-  }
-  .lock-screen {
-    height: 100%;
-    overflow: hidden;
-    width: 100%;
-    position: fixed;
-  }
-  .horizontal-line {
-    position: absolute;
-    bottom: 15%;
-    width: 100%;
-    border-top: 2px solid black;
-  }
-  .button-container {
-    position: absolute;
-    bottom: 1%;    
-  }     
-  td {
-    padding-left: 30px;    
-    padding-right: 30px;    
-  }
-  .instruction-text {
-    position: absolute;
-    width: 100%;
-    top: 10%;
-    left: 0;
-    text-align: center;
-    color: #bbb;
-    font-size: 1.5em;
-    user-select: none;
-    -webkit-user-select: none;
-    pointer-events: none;
-    font-family: sans-serif;
-  }
-  </style>
+<head> 
+  <link rel="stylesheet" href="webApp.css">     
   <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <title>Zoom</title>   
 </head>
 
 <body onload="PrepMessage('initialize')" class="lock-screen">
 
-  <div class="instruction-text">Tap and drag to move magnifier</div>
-  <div class="horizontal-line"></div>
-  <div class="button-container">
-    <table>
-      <tr>
-        <td style="text-align:center;">          
-          <input type="image" id="home" name="home" src='home.png' style="height:80px" onclick="PrepMessage('closepage')">
-        </td>
-        <td><br></td>
-        <td style="text-align:center;">
-          <input type="image" id="zoom" name="zoom" src='plusicon.png' style="height:80px" onclick="PrepMessage('setzoom')">
-        </td>        
-      </tr>
-  </table>
-  </div>  
-</body>
+  <header class="instruction-text">
+    <h3>Tap and drag to move magnifier</h3>
+  </header>
+    
+    <div class="horizontal-line"></div>
+    <div class="button-row two-items bottom-section" >
+      <input type="image" id="home" src="home.png" alt="Home" onclick="PrepMessage('closepage')">
+      <input type="image" id="zoom" src="plusicon.png" alt="Zoom" onclick="PrepMessage('setzoom')">
+    </div>  
+
 <script type='text/javascript' src='appServer.js'></script>
 <script src="../../common/customAlert.js"></script>
 <script>
@@ -85,8 +37,6 @@ let messagePayload = {
 let zoomicontoggle = true;
 let windowWidth = 0;
 let windowHeight = 0;
-
-
 
 /*
 Prepares and sends a command to the server via the makeRequest function.
@@ -198,4 +148,5 @@ document.addEventListener('touchmove', async function(e) {
 });
 
 </script>
+</body>
 </html>

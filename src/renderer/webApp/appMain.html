@@ -1,118 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-  <style>
-  body {
-    margin: 0;
-    padding: 0;
-    display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    min-height: 100vh;
-    background-color: white;
-  }
-
-  .bottom-container {
-    width: 80vw;               /* Fill 80% of screen width */
-    height: 80vh;              /* Fill 90% of screen height */
-    display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    align-items: center;
-    padding: 2vh 0;
-    margin-bottom: 15vh;  /* responsive bottom margin */
-    box-sizing: border-box;
-  }
-
-  .button-row {
-    display: flex;
-    justify-content: center;
-    gap: 5vw;    
-    width: 100%;
-    align-items: center;
-  }
-
-  .button-row input[type="image"] {
-    height: 80px;
-    width: 80px;       /* fixed width same as height */
-    object-fit: contain;
-    flex-shrink: 0;
-  }
-
-  .two-items {
-    gap: 20vw; /* More horizontal space between 2 buttons */
-    margin-top: 2vh; /* Extra vertical spacing above */
-    margin-bottom: 2vh; /* Extra spacing below */
-  }
-
-  .three-items {
-    gap: 10vw; /* More horizontal space between 3 buttons */
-    margin-top: 2vh; /* Extra vertical spacing above */
-    margin-bottom: 2vh; /* Extra spacing below */
-  }
-
-
-  /* Modal styles */
-  #modalOverlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-  }
-
-  #modalWindow {
-    position: absolute;
-    top: 50%;
-    left: 20%;
-    transform: translate(-50%, -50%);
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    text-align: center;
-    width: 20px;
-    height: 400px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-
-  #slider {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 400px;
-    height: 50px;
-    transform: rotate(-90deg);
-    background: white;
-    border-radius: 5px;
-    outline: none;
-    margin: 20px 0;
-  }
-
-  #slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 50px;
-    height: 50px;
-    background: url('../renderer/assets/images/slider0img.png') no-repeat center center;
-    background-size: contain;
-    border-radius: 50%;
-    cursor: pointer;
-    transform: rotate(90deg);
-  }    
-  </style>
+  <link rel="stylesheet" href="webApp.css">     
   <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
   <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <title>Main</title>     
 </head>
 
 <body onload='initialize()'>
- <div class="bottom-container">
+ <section class="bottom-container">
     <!-- First row -->
     <div class="button-row two-items">
       <input type="image" id="delete" name="delete" src="../renderer/assets/images/app delete.png" style="filter:grayscale(100%)" disabled onclick="PrepMessage('delete')">
@@ -121,7 +20,7 @@
 
     <!-- Second row -->
     <div class="button-row two-items">
-      <input type="image" id="openModalButton" name="openModalButton" src="../renderer/assets/images/slider100img.png" onclick="document.getElementById('modalOverlay').style.display='block'">
+      <input type="image" id="openModalButton" name="openModalButton" src="../renderer/assets/images/slider100img.png" onclick="document.getElementById('slider-modalOverlay').style.display='block'">
       <input type="image" id="options" name="options" src="../renderer/assets/images/app options.png" onclick="location.href='/appOptions';">
     </div>
 
@@ -138,18 +37,20 @@
       <input type="image" id="play_pause" name="play_pause" src="../renderer/assets/images/app pause.png" onclick="PrepMessage('play_pause')">
       <input type="image" id="forward" name="forward" src="../renderer/assets/images/app next.png" onclick="PrepMessage('next')">
     </div>
-  </div>
+  </section>
 
-  <!-- Modal Overlay and Slider -->
-  <div id="modalOverlay" onclick="this.style.display='none'">
-    <div id="modalWindow" onclick="event.stopPropagation()">
-      <input type="range" id="slider" min="0" max="1" step="0.01" value="0">
+  <section>
+    <!-- Modal Overlay and Slider -->
+    <div id="slider-modalOverlay" onclick="this.style.display='none'">
+      <div class="slider-modalWindow" onclick="event.stopPropagation()">
+        <input type="range" id="slider" min="0" max="1" step="0.01" value="0">
+      </div>
     </div>
-  </div>
 
-  <!-- Dynamic Slider Style -->
-  <style id="dynamicSliderStyle"></style>
-</body>
+    <!-- Dynamic Slider Style -->
+    <style id="dynamicSliderStyle"></style>
+  </section>
+
 <script type='text/javascript' src='appServer.js'></script>
 <script src="../../common/customAlert.js"></script> 
 <script>
@@ -166,13 +67,13 @@ async function initialize(){
 
 document.getElementById('openModalButton').addEventListener('click', function () {
   PrepMessage('GetMutePlayState');
-  document.getElementById('modalOverlay').style.display = 'block';
+  document.getElementById('slider-modalOverlay').style.display = 'block';
 });
 
 // Close the modal when clicking outside the modal window
-document.getElementById('modalOverlay').addEventListener('click', function (e) {
-  if (e.target.id === 'modalOverlay') { // Check if clicked directly on the overlay
-    document.getElementById('modalOverlay').style.display = 'none';
+document.getElementById('slider-modalOverlay').addEventListener('click', function (e) {
+  if (e.target.id === 'slider-modalOverlay') { // Check if clicked directly on the overlay
+    document.getElementById('slider-modalOverlay').style.display = 'none';
   }
 });
 
@@ -263,8 +164,8 @@ function setSliderImage(sliderValue){
   `#slider::-webkit-slider-thumb {
       background: url(${imageUrl}) no-repeat center center;
       background-size: contain;
-      width: 50px;
-      height: 50px;
+      width: clamp(2rem, 3rem, 4rem);
+      height: clamp(2rem, 3rem, 4rem);
   }`;           
   // Add or update the style tag in the head of the document
   var styleTag = document.getElementById('dynamicSliderStyle');
@@ -281,14 +182,14 @@ async function play_pause(){
     messagePayload = { command: 'direction', data: 'pause' };      
     document.getElementById("rotate").disabled = false;
     document.getElementById("delete").disabled = false;
-    document.getElementById("rotate").style = "height:80px";
-    document.getElementById("delete").style = "height:80px";    
+    document.getElementById("rotate").style = "height:clamp(1rem, 20vw, 5rem)";
+    document.getElementById("delete").style = "height:clamp(1rem, 20vw, 5rem)";    
     document.getElementById("play_pause").src = '../renderer/assets/images/app play.png';    
     playpauseswitch = 1;
   }else{    
     messagePayload = { command: 'direction', data: 'play' };         
-    document.getElementById("rotate").style = "height:80px;filter:grayscale(100%)";
-    document.getElementById("delete").style = "height:80px;filter:grayscale(100%)";    
+    document.getElementById("rotate").style = "height:clamp(1rem, 20vw, 5rem);filter:grayscale(100%)";
+    document.getElementById("delete").style = "height:clamp(1rem, 20vw, 5rem);filter:grayscale(100%)";    
     document.getElementById("rotate").disabled = true;  
     document.getElementById("delete").disabled = true;  
     document.getElementById("play_pause").src = '../renderer/assets/images/app pause.png';           
@@ -299,9 +200,6 @@ async function play_pause(){
 }
 
 
-
-
-  
 </script>
-
+</body>
 </html>

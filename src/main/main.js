@@ -65,9 +65,6 @@ router.get('/:page?', (req, res, next) => {
     case 'appZoom':
       filePath = '../renderer/webApp/appZoom.html';
     break;
-    case 'appSelectPlaylist':
-      filePath = '../renderer/webApp/appSelectPlaylist.html';
-    break;
     case 'appOptions':
       filePath = '../renderer/webApp/appOptions.html';
     break;
