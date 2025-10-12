@@ -23,8 +23,8 @@ Digital PictureFrame is a Windows only application that enables you to view your
 * ensuring that no digital item repeats until all are shown (in random order) from the active playlist, so that you have the opportunity to actually see all your desired content and not just the same items over and over again
 * using any device’s browser, such as Safari on an iPhone, to control your digital content display and change settings
 
-![Windows Application](images/WindowsApp.png)
-![Browser Main Application](images/WebAppMain.png)
-![Browser Editor Application](images/WebAppEdit.png)
+![Windows Application](doc-images/WindowsApp.png)
+![Browser Main Application](doc-images/WebAppMain.png)
+![Browser Editor Application](doc-images/WebAppEdit.png)
 
 
