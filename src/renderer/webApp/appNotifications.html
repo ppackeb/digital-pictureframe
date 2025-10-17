@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <link rel="stylesheet" href="webApp.css">     
+  <link rel="icon" type="image/x-icon" href="../renderer/assets/images/favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="../renderer/assets/images/favicon.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+  <title>Notifications</title>  
+</head>
+
+<body onload="Initialize()">
+  <header>
+    <h3>Notifications</h3>
+  </header>
+  
+  <section class="scrollable-folder-table large">
+    <table class="folder-table" id="markedFiles">          
+      <colgroup>
+        <col class="folder-name">        
+      </colgroup>              
+    </table> 
+  </section>
+  
+
+  <section class="bottom-buttons">   
+    <input type=image id="home" name="home" src='../renderer/assets/images/home.png' onclick="location.href='/appOptions';">    
+    <button id="delete" name="delete" onclick="ClearNotifications()">Clear All</button>
+  </section>  
+
+
+<script type='text/javascript' src='appServer.js'></script>
+<script src="../../common/customAlert.js"></script> 
+<script>
+
+
+// there is a startshow call in main.js to start the display.html.  in display_function (called by display.html) the g_selPLAYLIST variable
+// is what is looked at for selected playlist.  Should just be able to update this variable, close display.html and then call startshow
+
+function ClearNotifications(){
+  PrepMessage('DeleteMarkedFilesList');
+  document.getElementById('home').click();
+}
+
+async function Initialize(){
+  returnData = await PrepMessage('readMarkedFileList')     
+  const markedFilesTable = document.getElementById('markedFiles');
+  //let rowentry = '<tr><td>There are no Marked Items or Warnings</td></tr>';
+  //markedFilesTable.insertAdjacentHTML('beforeend', rowentry);    
+  const keyDisplayNames = {
+    rotate: "Items Marked for Rotation",
+    delete: "Items Marked for Deletion",
+    error: "General Warnings"
+  };
+  const MarkedItems ={
+    rotate: "no items",
+    delete: "no items",
+    error: "no warnings"
+  }
+  let rowentry = '';
+  Object.keys(returnData).forEach(function (key) {
+    // Use the mapped display name if available, otherwise use the key
+    const displayName = keyDisplayNames[key] || key;
+
+    // Insert header row with word-wrap styling
+    let rowentry = '';
+    rowentry += '<tr>';
+    rowentry += '<td style="border: 1px solid #ccc; word-break: break-word; white-space: normal;">';
+    rowentry += '<b>' + displayName + '</b></td>';
+    rowentry += '</tr>';
+    markedFilesTable.insertAdjacentHTML('beforeend', rowentry);
+
+    // Insert file entries or empty message
+    rowentry = '';
+    if (returnData[key].length === 0) {
+      const Displaymsg = MarkedItems[key] || key;
+      rowentry += '<tr>';
+      rowentry += '<td style="border: 1px solid #ccc; color: #999; font-style: italic; word-break: break-word; white-space: normal;">';
+      rowentry += '(' + Displaymsg + ')</td>';
+      rowentry += '</tr>';
+    } else {
+      returnData[key].forEach(function (value) {
+        rowentry += '<tr>';
+        rowentry += '<td style="border: 1px solid #ccc; word-break: break-word; white-space: normal;">';
+        rowentry += value + '</td>';
+        rowentry += '</tr>';
+      });
+    }
+    markedFilesTable.insertAdjacentHTML('beforeend', rowentry);
+  });     
+}
+</script>
+</body>
+</html>

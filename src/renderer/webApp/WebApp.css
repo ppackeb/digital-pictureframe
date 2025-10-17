@@ -1,20 +1,33 @@
-/*
+/* ==========================================================================
+   WebApp.css — reorganized by usage
+   ==========================================================================
 
-. - class
-# - id
+   Sections:
+   - GLOBAL (used by all HTML files)
+   - SHARED (used by multiple HTML files)
+   - appEditPlaylist.html
+   - appZoom.html
+   - appMain.html
+   - appOptions.html
+   - appPlaylists.html
+   - appCurrentPlaylist.html
+   - appPlaylistSettings.html
+   - appNotifications.html
+   - appQRCode.html
+   - appItemMetadata.html
 
-1 rem = 1 root font-size unit, e.g.font-size: 16px; (default browser font size ) 
-1rem = 16px, 
-20px = 1.25rem
-1 vw = 1% viewport width (the width of the visible screen)
-1 em = he font size of the element’s parent
-clamp(MIN, IDEAL, MAX)
-*/
+   Notes:
+   - Keep selectors functionally identical; only regrouped and commented.
+   - If you add/remove HTML files, update these sections accordingly.
+   ========================================================================== */
 
-
+/* =========================
+   GLOBAL (used by all HTML files)
+   ========================= */
+/* Used by: all pages */
 body {
   font-family: Arial, sans-serif;
-  font-size: clamp(1.25rem, 2vw, 2rem); /*clamp(MIN, IDEAL, MAX)*/
+  font-size: clamp(1.25rem, 2vw, 2rem);
   line-height: 1.4;
   padding-bottom: 5vh;
 }
@@ -22,110 +35,50 @@ body {
 input, button, select, textarea {
   font-family: inherit;
   font-size: inherit;
-  line-height: inherit;  
+  line-height: inherit;
 }
-
-header h3 {
-  text-align: center;
-}
-
-h4 {
-  margin-top: 1vh; /* Removes the space below */
-  margin-bottom: 0; /* Removes the space below */
-  padding-bottom: 0; /* Optional, in case padding is applied */
-}
-
-
 
 button {
   cursor: pointer;
-  border: none;  
-  border-radius: 6px;  
+  border: none;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+label {
+  display: block;
 }
 
 input::placeholder {
-  color: #999; /* light gray */
+  color: #999;
   font-style: italic;
-  width: 80%;
 }
 
-
-label {
-  display: block;  
-}
-
-
-.playlist-folder{
-  display: flex;
-  align-items: center; /* vertically centers children */
-  gap: 0.5rem;
-  margin-bottom:0rem;
-}
-
+/* Utility / common icon */
 .help-icon {
-  height: clamp(20px, 1.5vw, 32px);  /*clamp(MIN, IDEAL, MAX)*/  
+  height: clamp(20px, 1.5vw, 32px);
   width: auto;
   border: none;
   align-self: center;
 }
 
-/* Scrollable container:  */
-.scrollable-folder-table {
-  width: 98%;
-  height: 30vh;           /* 30% of the viewport height */
-  overflow-y: auto;       /* scroll when content exceeds height */
-  border: 1px solid #ccc;
-  box-sizing: border-box;     
-  margin-bottom: 1rem;   /* space below the div */  
-  border-radius: 6px;  
+/* Small heading utility (used in several pages) */
+header h3 {
+  text-align: center;
 }
 
-/* Table base */
-.folder-table {
-  border-collapse: collapse;
-  width: 100%;
-  table-layout: fixed;           /* fixes column widths */  
+/* H4 spacing utility (used in some pages) */
+h4 {
+  margin-top: 1vh;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
-/* Table cells */
-.folder-table td,
-.folder-table th, 
-.folder-table tr
-{
-  padding: 0.25rem 0.5rem;       /* minimal spacing */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: normal;
-  border-bottom: 1px solid #eee; /* subtle row separation */
-  height: 2.0rem;                 /* consistent row height */
-}
-
-/* Optional: alternating row colors */
-.folder-table tr:nth-child(even) {
-  background-color: #f9f9f9;
-}
-
-/* Column widths */
-.folder-table col.folder-name {
-  width: auto;             /* takes remaining space */
-}
-
-.folder-table col.folder-icon {
-  width: 15%;      
-}
-
-
-/* Images in the right column */
-.folder-table td:last-child img {
-  height: clamp(30px, 2.5vw, 40px);  /*clamp(MIN, IDEAL, MAX)*/
-  width: auto;                      /* maintain aspect ratio */
-  display: block;
-  margin: 0 auto;                   /* center in cell */  
-  border: none;
-}
-
-/* Bottom action buttons */
+/* =========================
+   SHARED (used by multiple HTML files)
+   ========================= */
+/* Used by: appEditPlaylist.html, appPlaylistSettings.html,
+appNotifications.html, appCurrentPlaylist.html, appPlaylists.html */
 .bottom-buttons {
   width: 100%;
   display: flex;
@@ -135,73 +88,143 @@ label {
   padding: clamp(0.5rem, 2vw, 1rem) 0;
   box-sizing: border-box;
 }
-
 .bottom-buttons button {
-  display: flex;                         /* allows centering via flexbox */
-  justify-content: center;               /* horizontal centering */
-  align-items: center;                   /* vertical centering */
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: clamp(6rem, 15vw, 7rem);
-  min-height: clamp(2.5rem, 5vh, 3rem);  /* use min-height instead of fixed height */  
-  padding: 0.5em 1em;                    /* responsive internal padding */
+  min-height: clamp(2.5rem, 5vh, 3rem);
+  padding: 0.5em 1em;
   cursor: pointer;
   box-sizing: border-box;
 }
 
-/* used by appZoom.html and appOptions.html */
-.button-row {
-  display: flex;
-  justify-content: center;   
+/* Generic scrollable table container (used by playlists and other lists) */
+.scrollable-folder-table {
+  width: 98%;
+  height: 30vh;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+  border-radius: 6px;
+}
+
+/* Folder-table base used across multiple pages */
+.folder-table {
+  border-collapse: collapse;
   width: 100%;
-  align-items: center;    
+  table-layout: fixed;
 }
-
-.button-row input[type="image"] {
-  height: clamp(1rem, 20vw, 5rem);  /* set a uniform height */
+.folder-table td,
+.folder-table th,
+.folder-table tr {
+  padding: 0.25rem 0.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: normal;
+  border-bottom: 1px solid #eee;
+  height: 2.0rem;
+}
+.folder-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+.folder-table td:last-child img {
+  height: clamp(30px, 2.5vw, 40px);
   width: auto;
-  object-fit: contain;
-  flex-shrink: 0;
+  display: block;
+  margin: 0 auto;
+  border: none;
 }
 
-.two-items {
-  gap: 20vw; /* More horizontal space between 2 buttons */  
+/* Column helpers */
+.folder-table col.folder-name { width: auto; }
+.folder-table col.folder-icon { width: 15%; }
+
+/* Small utility for selected row highlight (used in current playlist) */
+.folder-table tr.selected-row {
+  background-color: #3399ff;
 }
-/* done .button-row and .two-times sharing */
 
-
-/*
-/
-/ css settings for appMain.html
-/
-/
-*/
-
-.bottom-container {
-  padding-top: 5vh;
-  width: 95vw;               /* Fill 80% of screen width */
-  height: 95vh;              /* Fill 90% of screen height */
+/* =========================
+   appEditPlaylist.html
+   ========================= */
+/* Used by: appEditPlaylist.html */
+.input-row {
   display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  align-items: center;    
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.input-row input[type="text"] {
+  flex: 1;
+  padding: 0 0.5rem;
+  height: clamp(2rem, 3vw, 2.5rem);
+  border: 1px solid #ccc;
+  border-radius: 6px;
   box-sizing: border-box;
 }
 
-
-.three-items {
-  gap: 10vw; 
-  margin-top: 2vh; 
-  margin-bottom: 2vh; 
+.playlist-folder {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0rem;
 }
 
-/* slider control and modal when in use*/
-#slider {  
+/* Folder table specifically inside appEditPlaylist (keeps semantics) */
+#FolderTable { table-layout: fixed; width: 100%; }
+#FolderTable td:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 0;
+}
+#FolderTable td:last-child { width: 40px; text-align: center; }
+
+/* =========================
+   appZoom.html
+   ========================= */
+/* Used by: appZoom.html */
+.bottom-section {
+  position: fixed;
+  bottom: 1.5vh;
+  width: 100%;
+}
+.instruction-text {
+  position: absolute;
+  width: 95vw;
+  top: 5%;
+  text-align: center;
+  color: #bbb;
+}
+.lock-screen {
+  height: 95vh;
+  overflow: hidden;
+  width: 95vw;
+  position: fixed;
+}
+
+/* Horizontal decorative line */
+.horizontal-line {
+  position: fixed;
+  left: 0;
+  bottom: 15%;
+  width: 100%;
+  height: 0;
+  border-top: 2px solid black;
+  transform: none;
+  box-sizing: border-box;
+}
+
+/* Slider and slider modal (appZoom/appMain) */
+#slider {
   appearance: none;
   width: 80vh;
   height: clamp(1rem, 3rem, 10rem);
   transform: rotate(-90deg);
-
 }
-
 #slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -211,9 +234,7 @@ label {
   border-radius: 50%;
 }
 
-
-/* Modal styles */
-/* slider-modaloverlay disables the background while slider is active */
+/* Slider modal overlay (used in appMain/appZoom) */
 #slider-modalOverlay {
   display: none;
   position: fixed;
@@ -224,238 +245,96 @@ label {
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 1000;
 }
-
 .slider-modalWindow {
   position: absolute;
   top: 50%;
   left: 20%;
-  transform: translate(-50%, -50%);  
+  transform: translate(-50%, -50%);
   text-align: center;
   width: clamp(5rem, 10vw, 10rem);
   height: 80vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;  
+  align-items: center;
 }
+.slider-modalWindow input[type="range"] { border-radius: 2rem; }
 
-.slider-modalWindow input[type="range"] {
-  border-radius: 2rem;
-}
-
-
-/*
-/
-/ css settings for appZoom.html
-/
-/
-*/
-
-.bottom-section{
-  position: fixed;
-  bottom: 1.5vh;  
-  width: 100%;  
-}
-
-.instruction-text {
-  position: absolute;
+/* =========================
+   appMain.html
+   ========================= */
+/* Used by: appMain.html */
+.bottom-container {
+  padding-top: 5vh;
   width: 95vw;
-  top: 5%;              
-  text-align: center;
-  color: #bbb;    
-}
-
-.lock-screen {
   height: 95vh;
-  overflow: hidden;
-  width: 95vw;
-  position: fixed;
-}
-
-
-.horizontal-line {
-  position: fixed;           /* stays fixed at a screen position */
-  left: 0;                   /* anchor to left edge */
-  bottom: 15%;               /* distance from bottom */
-  width: 100%;               /* full viewport width */
-  height: 0;                 /* no height, just a line */
-  border-top: 2px solid black;
-  transform: none;           /* prevent skewing or scaling issues */
-  box-sizing: border-box;
-}
-
-
-/*
-/
-/ css settings for appOptions.html
-/
-/
-*/
-.button-container {
-  width: 95vw;
-  height: 95vh;             /* Fill 90% of screen height */
   display: flex;
   flex-direction: column;
   justify-content: space-around;
-  align-items: center;  
+  align-items: center;
+  box-sizing: border-box;
+}
+.three-items { gap: 10vw; margin-top: 2vh; margin-bottom: 2vh; }
+
+/* Dynamic slider thumb style is injected via JS in appMain */
+
+/* =========================
+   appOptions.html
+   ========================= */
+/* Used by: appOptions.html */
+.button-container {
+  width: 95vw;
+  height: 95vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
   box-sizing: border-box;
   padding-top: 1rem;
 }
-
-
-
-
-/*
-/
-/ css settings for appCurrentPlaylist.html
-/
-/
-*/
-
-.folder-table tr.selected-row  {
-  background-color: #3399ff; /* bright blue highlight */    
+.button-row { display: flex; justify-content: center; width: 100%; align-items: center; }
+.button-row input[type="image"] {
+  height: clamp(1rem, 20vw, 5rem);
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
 }
+.two-items { gap: 20vw; }
 
+/* =========================
+   appPlaylists.html
+   ========================= */
+/* Used by: appPlaylists.html */
+.scrollable-folder-table.large { height: 60vh; }
 
-
-/*
-/
-/ css settings for appQRCode.html
-/
-/
-*/
-
-.center-section {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start; /* vertical centering in available space */
-  margin-top: 0; /* adjust as needed */
-}
-
-#labelipv6, #labelipv4 {
-  text-align: center;   /* centers inline text */  
-}
-
-#qrcodeipv4, #qrcodeipv6 {  
-  margin-bottom: 1rem;
-}
-
-
-/*
-/
-/ css settings for appItemMetadata.html
-/
-/
-*/
-
-.metadata-entry{
-  display: flex;
-  flex-direction: column;  
-  gap: 0.5rem;
-  margin-bottom:1rem;  
-}
-
-.metadata-entry textarea {  
-  width: 100%;  
-  height: 60vh;            
-  padding: 0.5rem;  
-  height: clamp(6rem, 20vh, 12rem);  
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  box-sizing: border-box;  
-  resize: vertical;          /* allow vertical resizing */
-}
-
-
-.metadata-hidden {
-  display: flex;
-  align-items: center; /* vertically center the checkbox and text */
-  gap: 0.5rem;         /* space between checkbox and label */
-  margin-top: 1rem;
-}
-
-.metadata-hidden input[type="checkbox"] {
-  width: 1.25rem;          /* make checkbox larger (default ≈ 1rem) */
-  height: 1.25rem;
-  accent-color: #0078d7;   /* optional: change the check color (modern browsers) */
-  cursor: pointer;         /* pointer cursor for better UX */    
-}
-
-.metadata-hidden label {  
-  cursor: pointer;         /* clicking label toggles checkbox */
-}
-
-
-
-
-
-
-/*
-/
-/ css settings for appMarkedFiles.html
-/
-/
-*/
-
-.bottom-buttons input[type="image"] {
-  height: clamp(4rem, 10vw, 6rem);  
-  width: auto;                      
-  object-fit: contain;              
-  cursor: pointer;
-}
-
-
-
-
-/*
-/
-/ css settings for appPlaylists.html
-/
-/
-*/
-
-
-/* Modifier for larger version */
-.scrollable-folder-table.large {
-  height: 60vh;
-}
-
-
-/* Bottom action buttons */
 .bottom-buttons-images {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: clamp(5vw, 20vw, 25vw);   /* responsive spacing */
+  gap: clamp(5vw, 20vw, 25vw);
 }
-
 .bottom-buttons-images input[type="image"] {
-  height: clamp(4rem, 10vw, 6rem);  /* set a uniform height */
-  width: auto;                       /* preserve aspect ratio */
-  object-fit: contain;               /* ensures image scales within bounds */
+  height: clamp(4rem, 10vw, 6rem);
+  width: auto;
+  object-fit: contain;
   cursor: pointer;
 }
 
-/*
-/
-/ css settings for appPlaylistSettings.html
-/
-/
-*/
+/* =========================
+   appCurrentPlaylist.html
+   ========================= */
+/* Used by: appCurrentPlaylist.html */
+/* (Uses .folder-table and .bottom-buttons which live above in SHARED) */
 
-.input-select-settings {
-  display: block;           /* puts each label on its own line */  
-}
-
-.input-select-settings label {  
-  margin-top: 0.75rem;      /* adds a little spacing before next label */
-}
-
+/* =========================
+   appPlaylistSettings.html
+   ========================= */
+/* Used by: appPlaylistSettings.html */
+.input-select-settings { display: block; }
+.input-select-settings label { margin-top: 0.75rem; }
 .input-select-settings select,
-.input-select-settings input[type="text"] {  
-  width: 100%;              /* full width of the section */
+.input-select-settings input[type="text"] {
+  width: 100%;
   padding: 0 0.5rem;
   height: clamp(2rem, 3vw, 2.5rem);
   border: 1px solid #ccc;
@@ -463,96 +342,87 @@ label {
   box-sizing: border-box;
   text-overflow: ellipsis;
 }
-
 .bottom-3buttons {
-  position: static;          /* default, or just remove position entirely */
+  position: static;
   width: 100%;
   display: flex;
   justify-content: center;
-  align-items: center;  
-  gap: clamp(1rem, 5vw, 2.5rem);   /* flexible spacing between buttons */
-  padding: clamp(0.5rem, 2vw, 1rem) 0; /* vertical padding scales */
+  align-items: center;
+  gap: clamp(1rem, 5vw, 2.5rem);
+  padding: clamp(0.5rem, 2vw, 1rem) 0;
   box-sizing: border-box;
 }
-
-.bottom-3buttons button {    
-  width: clamp(6rem, 15vw, 10rem);   /* ~96px → 160px range depending on screen */
-  height: clamp(2.5rem, 10vh, 6rem);  /* scales by viewport height */
+.bottom-3buttons button {
+  width: clamp(6rem, 15vw, 10rem);
+  height: clamp(2.5rem, 10vh, 6rem);
 }
 
-.pause-loading {
-  display: flex;
-  flex-direction: column;   /* stack lines vertically */
-  margin-bottom: 1rem;
-}
-
-.pause-label {
-  margin-bottom: 0.25rem;    /* space between lines */
-  margin-top: 1rem;
-  
-}
-
-.pause-times {
-  display: flex;  
-  align-items: center;
-  gap:0.75rem;              /* space between label/select pairs */
-}
-
-
+/* Pause / rebuild controls (settings page) */
+.pause-loading { display: flex; flex-direction: column; margin-bottom: 1rem; }
+.pause-label { margin-bottom: 0.25rem; margin-top: 1rem; }
+.pause-times { display: flex; align-items: center; gap: 0.75rem; }
 .pause-times select {
-  min-width: 1em;                 /* don’t get too small */
-  max-width: 60%;               /* keep selects from being too wide */
-  padding: 0 0.5rem;    
+  min-width: 1em;
+  max-width: 60%;
+  padding: 0 0.5rem;
   border: 1px solid #ccc;
   border-radius: 6px;
-  box-sizing: border-box; 
+  box-sizing: border-box;
 }
-
-.pause-rebuild {
-  display: flex;
-  align-items: center; /* vertically center the checkbox and text */
-  gap: 0.5rem;         /* space between checkbox and label */
-  margin-top: 1rem;
-}
-
+.pause-rebuild { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; }
 .pause-rebuild input[type="checkbox"] {
-  width: 1.25rem;          /* make checkbox larger (default ≈ 1rem) */
-  height: 1.25rem;
-  accent-color: #0078d7;   /* optional: change the check color (modern browsers) */
-  cursor: pointer;         /* pointer cursor for better UX */  
-  transform: translateY(5px); /* optional: fine-tune the offset */
+  width: 1.25rem; height: 1.25rem; accent-color: #0078d7; cursor: pointer; transform: translateY(5px);
+}
+.pause-rebuild label { cursor: pointer; }
+
+/* =========================
+   appNotifications.html
+   ========================= */
+/* Used by: appNotifications.html */
+.bottom-buttons input[type="image"] {
+  height: clamp(4rem, 10vw, 6rem);
+  width: auto;
+  object-fit: contain;
+  cursor: pointer;
 }
 
-.pause-rebuild label {  
-  cursor: pointer;         /* clicking label toggles checkbox */
-}
+/* appNotifications uses .folder-table and .scrollable-folder-table from SHARED */
 
-/*
-/
-/ css settings for appEditPlaylist.html
-/
-/
-*/
-
-/* formating of inputs and images in a row */
-.input-row {
+/* =========================
+   appQRCode.html
+   ========================= */
+/* Used by: appQRCode.html */
+.center-section {
+  flex: 0 0 auto;
   display: flex;
-  align-items: center; /* vertically centers children */
-  gap: 0.5rem;
-  margin-bottom:1rem;  
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 0;
 }
+#labelipv6, #labelipv4 { text-align: center; }
+#qrcodeipv4, #qrcodeipv6 { margin-bottom: 1rem; }
 
-
-.input-row input[type="text"]{  
-  flex: 1; /* make it expand to fill remaining space for text*/  
-  padding: 0 0.5rem;  
-  height: clamp(2rem, 3vw, 2.5rem);  /*clamp(MIN, IDEAL, MAX)*/    
+/* =========================
+   appItemMetadata.html
+   ========================= */
+/* Used by: appItemMetadata.html */
+.metadata-entry { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+.metadata-entry textarea {
+  width: 100%;
+  padding: 0.5rem;
+  height: clamp(6rem, 20vh, 12rem);
   border: 1px solid #ccc;
   border-radius: 6px;
-  box-sizing: border-box;  
+  box-sizing: border-box;
+  resize: vertical;
 }
+.metadata-hidden { display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; }
+.metadata-hidden input[type="checkbox"] {
+  width: 1.25rem; height: 1.25rem; accent-color: #0078d7; cursor: pointer;
+}
+.metadata-hidden label { cursor: pointer; }
 
-
-
-
-
+/* ==========================================================================
+   End of file
+   ========================================================================== */

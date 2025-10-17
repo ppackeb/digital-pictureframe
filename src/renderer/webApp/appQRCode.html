@@ -53,36 +53,6 @@
     ip_local(data.appPort);            
   }
 
-  async function PrepMessage(payload){  
-    messagePayload = null;
-    switch (payload){
-      case 'app_readDB':
-        messagePayload = {command:"app_readDB", data:null};
-      break;            
-      case 'app_getQRCode':
-        messagePayload = {command:"app_getQRCode", data:null};
-      break;
-    }  
-    try {
-      // Await the response from the new, async makeRequest function.
-      returnData = await makeRequest('/app_sendrequest', messagePayload);
-      command = returnData.command;
-      data = returnData.data;
-      // Handle the response based on the command.
-      switch(messagePayload.command){
-        case 'app_readDB':
-          return data;
-        break;
-        case 'app_getQRCode':
-          return data;
-        break;
-        default:          
-        break;
-      }      
-    } catch (error) {        
-      //ShowAlert('Error in html POST. '+ error, false).then((result) => { })  
-    }         
-  }
 
   async function ip_local(g_appPort){ 
     addresses = await PrepMessage('app_getQRCode');        

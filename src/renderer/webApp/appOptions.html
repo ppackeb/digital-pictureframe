@@ -15,7 +15,7 @@
 
     <!-- First row -->
     <div class="button-row two-items">
-      <input type=image id="appPlaylistData" name="appPlaylistData" src='../renderer/assets/images/app data.png' onclick="PrepMessage('data')">      
+      <input type=image id="appPlaylistData" name="appPlaylistData" src='../renderer/assets/images/app data.png' onclick="PrepMessage('information','data')">      
       <input type=image id="QRCode" name="QRCode" src='../renderer/assets/images/app qrcode.png' onclick="location.href='/appQRCode';">      
     </div>
 
@@ -34,7 +34,7 @@
     <!-- Fourth row -->
     <div class="button-row two-items">
       <input type=image id="appPlaylists" name="appPlaylists" src='../renderer/assets/images/app new.png' onclick="location.href='/appPlaylists';">
-      <input type=image id="MarkedFiles" name="MarkedFiles" src='../renderer/assets/images/app notifications.png'  onclick="location.href='/appMarkedFiles';">    
+      <input type=image id="MarkedFiles" name="MarkedFiles" src='../renderer/assets/images/app notifications.png'  onclick="location.href='/appNotifications';">    
     </div>
     
     <!-- Fifth row -->
@@ -52,8 +52,13 @@
 let hideImagesState = 0; // 1 = hide, 0 = show
 
   async function initialize() {
-    await PrepMessage('GethideImagesState');
-    
+    let currentHideImagesState = PrepMessage('GethideImagesState');
+    hideImagesState = parseInt(currentHideImagesState,10);             
+    if (hideImagesState){               
+      document.getElementById('HiddenImages').setAttribute('src', 'app hide.png');             
+    }else{
+      document.getElementById('HiddenImages').setAttribute('src', 'app unhide.png');             
+    }    
   } 
 
   document.getElementById('HiddenImages').addEventListener('click', function() {
@@ -63,10 +68,10 @@ let hideImagesState = 0; // 1 = hide, 0 = show
   } else {
     this.src = 'app unhide.png';
   }
-  PrepMessage('appSetHideShowImages');
+  PrepMessage('appSetHideShowImages', hideImagesState);
 });
 
-
+/*
   async function PrepMessage(payload){   
     let messagePayload = null;
     switch (payload){
@@ -106,7 +111,7 @@ let hideImagesState = 0; // 1 = hide, 0 = show
       //ShowAlert('Error in html POST. '+ error, false).then((result) => {  })    
     }
   }
-
+*/
 
 </script>
 </body>  

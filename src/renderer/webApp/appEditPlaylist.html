@@ -107,58 +107,6 @@
     }
 
 
-    
-    async function PrepMessage(payload){  
-      messagePayload = null;    
-      switch (payload){  
-        case "DeletePlaylist":        
-          messagePayload = {command: "DeletePlaylist",data: GetPlaylistName()};        
-        break;
-        case "NewPlaylist":      
-          data = {
-            playlistname: GetPlaylistName(),
-            playlistDir: directorylist,
-          };
-          messagePayload = {command: "NewPlaylist",data: data};
-          ShowSavingModal(true, "Saving playlists...");  // from customAlert.js        
-        break;
-        case "app_readDB":      
-          messagePayload = {command:"app_readDB", "data":null };
-        break;
-
-      }  
-      try {
-        // Await the response from the new, async makeRequest function.
-        returnData = await makeRequest("/app_sendrequest", messagePayload);
-        command = returnData.command;
-        data = returnData.data;
-        // Handle the response based on the command.
-        switch(messagePayload.command){
-          case "NewPlaylist":
-            if (data){                
-              ShowAlert("Playlist not created.\n\n  Attempted to created a playlist with no folders.\n\nThis may be caused by keywords in Use Folders with Keywords or Do Not Use Folders with Keywords fields", false).then((result) => {                                
-                ShowSavingModal(false); // from customAlert.js        
-              })
-            }else{                 
-              ShowAlert("Playlist successfully created", false).then((result) => {               
-                ShowSavingModal(false); // from customAlert.js        
-                location.href="/appPlaylists";               
-              })                
-            }           
-          break;
-          case "app_readDB":
-            return data;
-          break;
-          
-          default:          
-          break;
-        }      
-      } catch (error) {        
-        //ShowAlert("Error in html POST. "+ error, false).then((result) => {                  
-        //  })  
-      } 
-    }
-
     function UpdateUI(action){
       switch (action) {
         case "savePlaylist":        
@@ -353,14 +301,29 @@
           });            
         });      
       }
-      await PrepMessage("DeletePlaylist");
-      PrepMessage("NewPlaylist"); // send the request to create a new playlist                       
+      await PrepMessage("DeletePlaylist", GetPlaylistName());
+      newPlaylistData = {
+        playlistname: GetPlaylistName(),
+        playlistDir: directorylist,
+      };
+      ShowSavingModal(true, "Saving playlists...");  // from customAlert.js   
+      let newPlaylistreturn = await PrepMessage("NewPlaylist",newPlaylistData); // send the request to create a new playlist                             
+      if (newPlaylistreturn){              
+        ShowAlert("Playlist not created.\n\n  Attempted to created a playlist with no folders.\n\nThis may be caused by keywords in Use Folders with Keywords or Do Not Use Folders with Keywords fields", false).then((result) => {                                
+          ShowSavingModal(false); // from customAlert.js        
+        })
+      }else{                 
+        ShowAlert("Playlist successfully created", false).then((result) => {               
+          ShowSavingModal(false); // from customAlert.js        
+          location.href="/appPlaylists";               
+        })  
     }
+  }
 
     function deletePlaylist(){
       ShowAlert("Delete selected playlist?", true).then((result) => {  
         if (result == "ok"){
-          PrepMessage("DeletePlaylist");  
+          PrepMessage("DeletePlaylist", GetPlaylistName());  
           location.href="/appPlaylists";       
         }      
       });    

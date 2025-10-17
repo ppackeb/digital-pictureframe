@@ -37,67 +37,41 @@
 
   let playlistNames = null;
 
-  async function PrepMessage(payload){  
-    messagePayload = null;
-    switch (payload){
-      case 'app_readDB':
-        messagePayload = {command:"app_readDB", data: null};
-      break;              
-    }  
-    try {
-      // Await the response from the new, async makeRequest function.
-      returnData = await makeRequest('/app_sendrequest', messagePayload);
-      command = returnData.command;
-      data = returnData.data;
-      // Handle the response based on the command.
-      switch(messagePayload.command){
-        case 'app_readDB':
-          return data;
-        break;
-        default:          
-        break;
-      }      
-    } catch (error) {        
-      //ShowAlert('Error in html POST. '+ error, false).then((result) => { })  
-    } 
-  }
-  
-
   async function initialize(){
     returnData = await PrepMessage('app_readDB')
     WriteUI(returnData);        
   }
 
-function WriteUI(data) {
-  playlists = data.playlists;
-  SelectedPlaylist = data.selplaylist;  
-  const playlistTable = document.getElementById("playlists");
+  function WriteUI(data) {
+    playlists = data.playlists;
+    SelectedPlaylist = data.selplaylist;  
+    const playlistTable = document.getElementById("playlists");
 
-  playlistNames = Object.keys(playlists);
+    playlistNames = Object.keys(playlists);
 
-  // Sort by the second part (displayName) in a case-insensitive manner
-  playlistNames.sort((a, b) => {
-    const nameA = a.split('_')[1]?.toLowerCase() || '';
-    const nameB = b.split('_')[1]?.toLowerCase() || '';
-    return nameA.localeCompare(nameB);
-  });
+    // Sort by the second part (displayName) in a case-insensitive manner
+    playlistNames.sort((a, b) => {
+      const nameA = a.split('_')[1]?.toLowerCase() || '';
+      const nameB = b.split('_')[1]?.toLowerCase() || '';
+      return nameA.localeCompare(nameB);
+    });
 
-  playlistNames.forEach((name, index) => {
-    parts = name.split('_');
-    displayName = parts[1];
-    PlaylistFullName = name.replace(/^playlist_/, '');
-    
-    let newRow = playlistTable.insertRow();
-    
-      // Highlight if this is the selected playlist
-    if (PlaylistFullName === SelectedPlaylist) {
-      newRow.innerHTML = `<td>${displayName}</td> <td><img src="../renderer/assets/images/app star.png"></td>`;
-    }else{
-      newRow.innerHTML = `<td>${displayName}</td> <td></td>`;            
-    }     
+    playlistNames.forEach((name, index) => {
+      parts = name.split('_');
+      displayName = parts[1];
+      PlaylistFullName = name.replace(/^playlist_/, '');
+      
+      let newRow = playlistTable.insertRow();
+      
+        // Highlight if this is the selected playlist
+      if (PlaylistFullName === SelectedPlaylist) {
+        newRow.innerHTML = `<td>${displayName}</td> <td><img src="../renderer/assets/images/app star.png"></td>`;
+      }else{
+        newRow.innerHTML = `<td>${displayName}</td> <td></td>`;            
+      }     
 
-  });
-}
+    });
+  }
 
   document.getElementById("playlists").addEventListener("click", function(event) {
     // Find the nearest parent <tr> of the clicked element

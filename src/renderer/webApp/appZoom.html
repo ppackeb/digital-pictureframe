@@ -10,7 +10,7 @@
   <title>Zoom</title>   
 </head>
 
-<body onload="PrepMessage('initialize')" class="lock-screen">
+<body onload="initialize()" class="lock-screen">
 
   <header class="instruction-text">
     <h3>Tap and drag to move magnifier</h3>
@@ -18,8 +18,8 @@
     
     <div class="horizontal-line"></div>
     <div class="button-row two-items bottom-section" >
-      <input type="image" id="home" src="home.png" alt="Home" onclick="PrepMessage('closepage')">
-      <input type="image" id="zoom" src="plusicon.png" alt="Zoom" onclick="PrepMessage('setzoom')">
+      <input type="image" id="home" src="home.png" alt="Home" onclick="ClosePage()">
+      <input type="image" id="zoom" src="plusicon.png" alt="Zoom" onclick="SetZoom()">
     </div>  
 
 <script type='text/javascript' src='appServer.js'></script>
@@ -27,8 +27,7 @@
 <script>
 
 // for closepage done: 0 = page just opened, 1 = page is sending valide data, 2 = page is closing
-let messagePayload = {
-  "command": "ZoomImage",
+let zoomPayload = {  
   "data": { "xpos": 0, "ypos": 0 },
   "window": { "winw": 0, "winh": 0 },
   "zoom": { "zoomlevel": 1 },
@@ -38,78 +37,48 @@ let zoomicontoggle = true;
 let windowWidth = 0;
 let windowHeight = 0;
 
-/*
-Prepares and sends a command to the server via the makeRequest function.
-@param {string} payload - The command string to send.
-@returns {Promise<any>} A promise that resolves with the processed response data.
-.invoke/.handle is used for request-response pattern
-.send/.on is used for fire-and-forget or one-way messages
-*/
-async function PrepMessage(payload) {
-  switch (payload) {
-    case 'closepage':
-      messagePayload.closepage.done = 2; //update messagePayload      
-      location.href = '/';
-    break;
+function initialize(){
+  // Get window dimensions
+  windowWidth = window.innerWidth;
+  windowHeight = window.innerHeight;
 
-    case 'setzoom':
-      const zoomElement = document.getElementById('zoom');
+  // Get the position of the horizontal line from the top of the document
+  const lineElement = document.querySelector('.horizontal-line');
+  const lineBottomPosition = lineElement.offsetTop + lineElement.offsetHeight;
 
-      if (zoomicontoggle) {
-        zoomElement.src = 'minusicon.png';
-        zoomicontoggle = false;
-        zoomlevel = 2;
-      } else {
-        zoomElement.src = 'plusicon.png';
-        zoomicontoggle = true;
-        zoomlevel = 1;
-      }
-      // Update the payload object directly
-      messagePayload.zoom.zoomlevel = zoomlevel;
-      messagePayload.data.xpos = windowWidth / 2;
-      messagePayload.data.ypos = windowHeight / 2;
-      messagePayload.closepage.done = 1;
-    break;
+  // Calculate the usable height
+  const usableHeight = windowHeight - (windowHeight - lineBottomPosition);
 
-    case 'initialize':
-      // Get window dimensions
-      windowWidth = window.innerWidth;
-      windowHeight = window.innerHeight;
+  // Update the object's properties directly
+  zoomPayload.window.winw = windowWidth;
+  zoomPayload.window.winh = usableHeight;
+  zoomPayload.closepage.done = 0; // Page just opened
+  PrepMessage('ZoomImage', zoomPayload);
+}
 
-      // Get the position of the horizontal line from the top of the document
-      const lineElement = document.querySelector('.horizontal-line');
-      const lineBottomPosition = lineElement.offsetTop + lineElement.offsetHeight;
+function ClosePage(){  
+  zoomPayload.closepage.done = 2; //update zoomPayload      
+  PrepMessage('ZoomImage', zoomPayload);
+  location.href = '/';
+}
 
-      // Calculate the usable height
-      const usableHeight = windowHeight - (windowHeight - lineBottomPosition);
-
-      // Update the object's properties directly
-      messagePayload.window.winw = windowWidth;
-      messagePayload.window.winh = usableHeight;
-      messagePayload.closepage.done = 0; // Page just opened
-    break;
-
-    case 'zoomMove':
-      messagePayload = messagePayload; // just here to show that messagePayload is already updated in handleMovement function
-    break;
-
-    default:    
-    return;
+function SetZoom(){  
+  const zoomElement = document.getElementById('zoom');
+  if (zoomicontoggle) {
+    zoomElement.src = 'minusicon.png';
+    zoomicontoggle = false;
+    zoomlevel = 2;
+  } else {
+    zoomElement.src = 'plusicon.png';
+    zoomicontoggle = true;
+    zoomlevel = 1;
   }
-  try {
-    // Await the response from the new, async makeRequest function.
-    const returnData = await makeRequest('/app_sendrequest', messagePayload);
-    command = returnData.command;
-    data = returnData.data;
-    // Handle the response based on the command.
-    switch(messagePayload.command){
-      default:          
-      break;
-    }      
-  } catch (error) {  
-    // from customAlert.js    
-    //ShowAlert('Error in html POST. '+ error, false).then((result) => { })    
-  }
+  // Update the payload object directly
+  zoomPayload.zoom.zoomlevel = zoomlevel;
+  zoomPayload.data.xpos = windowWidth / 2;
+  zoomPayload.data.ypos = windowHeight / 2;
+  zoomPayload.closepage.done = 1;
+  PrepMessage('ZoomImage', zoomPayload);
 }
 
 
@@ -122,12 +91,12 @@ onmousemove = async function(eventObj) {
     ? eventObj.clientY 
     : lineBottomPosition - 1;
   // Update payload
-  messagePayload.data.xpos = eventObj.clientX;
-  messagePayload.data.ypos = yPos;
-  messagePayload.closepage.done = 1;
+  zoomPayload.data.xpos = eventObj.clientX;
+  zoomPayload.data.ypos = yPos;
+  zoomPayload.closepage.done = 1;
 
   // Await PrepMessage if it's async
-  PrepMessage('zoomMove');
+  PrepMessage('ZoomImage', zoomPayload);
 };
 
 document.addEventListener('touchmove', async function(e) {
@@ -139,12 +108,12 @@ document.addEventListener('touchmove', async function(e) {
     ? touch.clientY 
     : lineBottomPosition - 1;
   // Update the payload directly
-  messagePayload.data.xpos = touch.clientX;
-  messagePayload.data.ypos = yPos;
-  messagePayload.closepage.done = 1;
+  zoomPayload.data.xpos = touch.clientX;
+  zoomPayload.data.ypos = yPos;
+  zoomPayload.closepage.done = 1;
 
   // Await PrepMessage if it's async
-  PrepMessage('zoomMove'); 
+  PrepMessage('ZoomImage', zoomPayload); 
 });
 
 </script>

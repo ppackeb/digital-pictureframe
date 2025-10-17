@@ -153,7 +153,8 @@
    let displayImg = null; // used for zoom function
    let zoomBoundingBox = null; // used for zoom function
    let zoomlensExited = false; // if multiple users have zoom open, need to track when one closes to remove zoomlens   
-   ipcRenderer.on('ZoomLocation', (event, arg) => {                                    
+   ipcRenderer.on('ZoomLocation', (event, arg) => {           
+      arg = arg.data;
       switch (arg.closepage.done){
          case 0: // page is opened 
             zoomlensExited = false; // page is opened, zoom timeout is not active

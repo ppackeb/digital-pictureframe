@@ -14,8 +14,8 @@
  <section class="bottom-container">
     <!-- First row -->
     <div class="button-row two-items">
-      <input type="image" id="delete" name="delete" src="../renderer/assets/images/app delete.png" style="filter:grayscale(100%)" disabled onclick="PrepMessage('delete')">
-      <input type="image" id="rotate" name="rotate" src="../renderer/assets/images/app rotate.png" style="filter:grayscale(100%)" disabled onclick="PrepMessage('rotate')">
+      <input type="image" id="delete" name="delete" src="../renderer/assets/images/app delete.png" style="filter:grayscale(100%)" disabled onclick="PrepMessage('filectrl','delete')">
+      <input type="image" id="rotate" name="rotate" src="../renderer/assets/images/app rotate.png" style="filter:grayscale(100%)" disabled onclick="PrepMessage('filectrl','rotate')">
     </div>
 
     <!-- Second row -->
@@ -28,14 +28,14 @@
     <div class="button-row three-items">
       <input type="image" id="zoom" name="zoom" src="../renderer/assets/images/app zoom.png" onclick="location.href='/appZoom';">
       <input type="image" id="currentPlaylist" name="currentPlaylist" src="../renderer/assets/images/app playlist.png" onclick="location.href = `/appCurrentPlaylist`">
-      <input type="image" id="location" name="location" src="../renderer/assets/images/app location.png" onclick="PrepMessage('location')">
+      <input type="image" id="location" name="location" src="../renderer/assets/images/app location.png" onclick="PrepMessage('information','location')">
     </div>
 
     <!-- Fourth row style="gap: 10vw"-->
     <div class="button-row three-items" >
-      <input type="image" id="back" name="back" src="../renderer/assets/images/app back.png" onclick="PrepMessage('back')">
-      <input type="image" id="play_pause" name="play_pause" src="../renderer/assets/images/app pause.png" onclick="PrepMessage('play_pause')">
-      <input type="image" id="forward" name="forward" src="../renderer/assets/images/app next.png" onclick="PrepMessage('next')">
+      <input type="image" id="back" name="back" src="../renderer/assets/images/app back.png" onclick="PrepMessage('direction','back')">
+      <input type="image" id="play_pause" name="play_pause" src="../renderer/assets/images/app pause.png" onclick="setPlayPause()">
+      <input type="image" id="forward" name="forward" src="../renderer/assets/images/app next.png" onclick="PrepMessage('direction','next')">
     </div>
   </section>
 
@@ -61,12 +61,27 @@ var playpauseswitch = 1; //tracks play pause state 1 is playing 0 is paused
 
 async function initialize(){  
   //needed async await to ensure the order of the messages
-  await PrepMessage('GetMutePlayState');  
+  MutePlayState = await PrepMessage('GetMutePlayState',"");  
+  if (MutePlayState === null) return; // No ImageWindow available
+  playpauseswitch = MutePlayState.playstate;
+  document.getElementById('slider').value = MutePlayState.volume;
+  setSliderImage(MutePlayState.volume);
+  play_pause();
+}
+
+async function setPlayPause(){
+  let play_pause_state = await play_pause();
+  PrepMessage('direction',play_pause_state);
 }
 
 
-document.getElementById('openModalButton').addEventListener('click', function () {
-  PrepMessage('GetMutePlayState');
+document.getElementById('openModalButton').addEventListener('click', async function () {
+  MutePlayState = await PrepMessage('GetMutePlayState',"");
+  if (MutePlayState === null) return; // No ImageWindow available
+  playpauseswitch = MutePlayState.playstate;
+  document.getElementById('slider').value = MutePlayState.volume;
+  setSliderImage(MutePlayState.volume);
+  play_pause();
   document.getElementById('slider-modalOverlay').style.display = 'block';
 });
 
@@ -81,70 +96,9 @@ document.getElementById('slider-modalOverlay').addEventListener('click', functio
 document.getElementById('slider').addEventListener('input', function() {
   var sliderValue = this.value;
   setSliderImage(sliderValue);      
-  PrepMessage('volume');
+  PrepMessage('volume',document.getElementById('slider').value);
 });
 
-
-/*
-Prepares and sends a command to the server via the makeRequest function.
-@param {string} payload - The command string to send.
-@returns {Promise<any>} A promise that resolves with the processed response data.
-.invoke/.handle is used for request-response pattern
-.send/.on is used for fire-and-forget or one-way messages
-*/
-async function PrepMessage(payload) {
-  let messagePayload = null;
-  switch (payload) {
-    case 'GetMutePlayState':
-      messagePayload = { command: 'GetMutePlayState', data: "" };
-    break;
-    case 'next':
-      messagePayload = { command: 'direction', data: 'next' };
-    break;
-    case 'back':
-      messagePayload = { command: 'direction', data: 'back' };
-    break;
-    case 'play_pause':
-      messagePayload = await play_pause();
-    break;
-    case 'rotate':
-      messagePayload = { command: 'filectrl', data: 'rotate' };
-    break;
-    case 'delete':
-      messagePayload = { command: 'filectrl', data: 'delete' };
-    break;
-    case 'location':
-      messagePayload = { command: 'information', data: 'location' };
-    break;
-    case 'volume':      
-      messagePayload = { command: 'volume', data: document.getElementById('slider').value };
-    break;
-    default:    
-    return;
-  }
-  try {
-    // Await the response from the new, async makeRequest function.
-    const returnData = await makeRequest('/app_sendrequest', messagePayload);
-    command = returnData.command;
-    data = returnData.data;
-    // Handle the response based on the command.
-    switch(messagePayload.command){
-      case 'GetMutePlayState':        
-        if (data === null) return; // No ImageWindow available
-        playpauseswitch = data.playstate;
-        document.getElementById('slider').value = data.volume;
-        setSliderImage(data.volume);
-        play_pause();
-      break;
-
-      default:          
-      break;
-    }      
-  } catch (error) {      
-    //ShowAlert('Error in html POST. '+ error, false).then((result) => {  })    
-  }
-
-}
 
 
 function setSliderImage(sliderValue){
@@ -178,8 +132,9 @@ function setSliderImage(sliderValue){
 }
 
 async function play_pause(){  
+  // command is 'direction'
   if (playpauseswitch == 0){    
-    messagePayload = { command: 'direction', data: 'pause' };      
+    messageData = 'pause';
     document.getElementById("rotate").disabled = false;
     document.getElementById("delete").disabled = false;
     document.getElementById("rotate").style = "height:clamp(1rem, 20vw, 5rem)";
@@ -187,7 +142,7 @@ async function play_pause(){
     document.getElementById("play_pause").src = '../renderer/assets/images/app play.png';    
     playpauseswitch = 1;
   }else{    
-    messagePayload = { command: 'direction', data: 'play' };         
+    messageData = 'play';    
     document.getElementById("rotate").style = "height:clamp(1rem, 20vw, 5rem);filter:grayscale(100%)";
     document.getElementById("delete").style = "height:clamp(1rem, 20vw, 5rem);filter:grayscale(100%)";    
     document.getElementById("rotate").disabled = true;  
@@ -195,8 +150,7 @@ async function play_pause(){
     document.getElementById("play_pause").src = '../renderer/assets/images/app pause.png';           
     playpauseswitch = 0;
   }
-  return messagePayload;
-
+  return messageData;  
 }
 
 

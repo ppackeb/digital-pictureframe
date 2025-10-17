@@ -67,7 +67,7 @@
     </section>
 
     <section class="bottom-3buttons">               
-      <button id="accept" name="accept"  onclick="WriteDB()">Save</button>
+      <button id="accept" name="accept"  onclick="SaveandExit()">Save</button>
       <button id="rebuildAll" name="rebuildAll"  onclick="RebuildAll()">Save & Refresh</button>
       <button id="cancel" name="cancel" onclick="location.href='/appOptions';">Cancel</button>
     </section>
@@ -110,72 +110,6 @@ document.getElementById('AppStartDirectory').addEventListener('click', function 
    });
 });
 
-async function PrepMessage(payload){
-  let messagePayload = null;
-  switch (payload){
-    case 'TopImageDir':
-      messagePayload = {command:"ImageDir", data:"TopDir" };
-    break;
-    case 'SubImageDir': 
-      messagePayload = {command: "ImageDir", data: SubDir}; 
-    break;
-    case 'appRebuildAll': 
-      ShowSavingModal(true, "Rebuilding playlists...");  // from customAlert.js      
-      messagePayload = {command:"appRebuildAll", data:null };
-    break;
-    case 'ImageDir':
-      messagePayload = {command:"ImageDir", data:"TopDir" };
-    break;
-    case 'app_writeDB':
-      ReadUI();
-      let data = {
-        selPLAYLIST: selPLAYLIST,
-        basedelay: basedelay,
-        preloadNUM: preloadNUM,
-        prefetchNUM: prefetchNUM, 
-        StartTime: StartTimeValue,
-        StopTime: StopTimeValue,
-        nightlyrebuild: nightlyrebuild,
-        appStartDir: appStartDir
-      };
-      messagePayload = {command: "app_writeDB",data: data}; 
-    break;
-    case 'app_readDB':
-      messagePayload = {command:"app_readDB", data:""};
-    break;
-  } 
-
-  try {
-    // Await the response from the new, async makeRequest function.
-    const returnData = await makeRequest('/app_sendrequest', messagePayload);
-    command = returnData.command;
-    data = returnData.data;
-    // Handle the response based on the command.
-    switch(messagePayload.command){
-      case 'app_readDB':        
-        return data;
-      break;
-      case 'ImageDir':        
-        return data.data;
-      break;
-      case 'appRebuildAll':        
-        if (data.data){           
-                ShowSavingModal(false);  // from customAlert.js     
-          await ShowAlert("Error rebuilding one or more Playlists", false);
-        } else {
-          ShowSavingModal(false);  // from customAlert.js               
-          await ShowAlert("Update successful", false);          
-          location.href='/appOptions';
-        } 
-      break;
-
-      default:          
-      break;
-    }      
-  } catch (error) {      
-    //ShowAlert('Error in html POST. '+ error, false).then((result) => { })    
-  }
-}
 
 function GetHelpAddFolder(){
   alert('Type the folder path directly or click the folder path to progress in the hierarchy to find the desired folder.  Click "Save" to add the folder path to the playlist.  Use the "Back" button to move up the current folder hierarchy path.  Use "Cancel" to exit without adding a folder to the playlist');
@@ -183,12 +117,36 @@ function GetHelpAddFolder(){
 
 // rebuilds all playlists as well as all meta data
 async function RebuildAll(){  
-  await PrepMessage('app_writeDB');
-  PrepMessage('appRebuildAll'); // rebuild all playlists and images  
+  ShowSavingModal(true, "Rebuilding playlists...");  // from customAlert.js   
+  await WriteDB();
+  let rebuildResult = await PrepMessage('appRebuildAll'); // rebuild all playlists and images  
+  if (rebuildResult){           
+    ShowSavingModal(false);  // from customAlert.js     
+    await ShowAlert("Error rebuilding one or more Playlists", false);
+  } else {
+    ShowSavingModal(false);  // from customAlert.js               
+    await ShowAlert("Update successful", false);          
+    location.href='/appOptions';
+  } 
 }
 
-function WriteDB(){
-  PrepMessage('app_writeDB')
+async function WriteDB(){
+  ReadUI();
+  let data = {
+    selPLAYLIST: selPLAYLIST,
+    basedelay: basedelay,
+    preloadNUM: preloadNUM,
+    prefetchNUM: prefetchNUM, 
+    StartTime: StartTimeValue,
+    StopTime: StopTimeValue,
+    nightlyrebuild: nightlyrebuild,
+    appStartDir: appStartDir
+  };
+  await PrepMessage('app_writeDB', data);  
+}
+
+async function SaveandExit(){
+  WriteDB();
   location.href = '/appOptions'; // go back to options page after saving
 }
 

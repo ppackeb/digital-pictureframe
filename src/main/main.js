@@ -68,8 +68,8 @@ router.get('/:page?', (req, res, next) => {
     case 'appOptions':
       filePath = '../renderer/webApp/appOptions.html';
     break;
-    case 'appMarkedFiles':
-      filePath = '../renderer/webApp/appMarkedFiles.html';
+    case 'appNotifications':
+      filePath = '../renderer/webApp/appNotifications.html';
     break;
     case 'appPlaylistSettings':
       filePath = '../renderer/webApp/appPlaylistSettings.html';

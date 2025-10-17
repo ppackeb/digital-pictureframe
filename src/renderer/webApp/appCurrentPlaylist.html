@@ -25,7 +25,7 @@
   </section>
       
   <section class="bottom-buttons">    
-    <button id="accept" name="accept"  onclick="PrepMessage('app_writeDB')">Save</button>
+    <button id="accept" name="accept"  onclick="SaveChanges()">Save</button>
     <button id="home" name="home"  onclick="location.href='/';">Cancel</button>
   </section>      
 
@@ -38,44 +38,14 @@
   let currentPlaylist = ""; //currently loaded playlist
 
 
-
-  async function PrepMessage(payload) {
-    let messagePayload = null;
-
-    switch (payload) {
-      case 'app_readDB':
-        messagePayload = { command: "app_readDB", data: "" };
-      break;
-      case 'app_writeDB':
-        if (selectedPlaylist !== "" && selectedPlaylist !== currentPlaylist) {
-          let data = {
-            selPLAYLIST: selectedPlaylist
-          };
-          messagePayload = { command: "app_writeDB", data: data };
-        }
-      break;
-      default:    
-      return;
+  async function SaveChanges(){
+    if (selectedPlaylist !== currentPlaylist) {
+      let savedata = {
+        selPLAYLIST: selectedPlaylist
+      };      
+      let result = await PrepMessage("app_writeDB", savedata);
     }    
-    try {
-      // Await the response from the new, async makeRequest function.
-      const returnData = await makeRequest('/app_sendrequest', messagePayload);
-      command = returnData.command;
-      data = returnData.data;
-      // Handle the response based on the command.
-      switch(messagePayload.command){
-        case 'app_readDB':
-          return data;
-        break;
-        case 'app_writeDB':
-          location.href = '/';  
-        break;
-        default:          
-        break;
-      }      
-    } catch (error) {        
-      //ShowAlert('Error in html POST. '+ error, false).then((result) => {  })  
-    }    
+    location.href = '/'; 
   }
 
   async function initialize(){

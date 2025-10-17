@@ -48,7 +48,7 @@
   async function initialize(){  
       document.getElementById('accept').disabled = true;     
       document.getElementById('accept').style.filter = "grayscale(100%)";              
-      ImageEXIFdata = await PrepMessage('AppGetCurrentDisplayImageData');      
+      ImageEXIFdata = await PrepMessage('AppGetCurrentDisplayImageData',{closepage:{done:0}});           
       if (ImageEXIFdata != null) {            
         const isSupported = ['.jpeg', '.jpg', '.mp4'].some(ext => ImageEXIFdata.ImagePath.toLowerCase().endsWith(ext));    
         if (isSupported) {
@@ -63,20 +63,20 @@
           hiddenCheckbox.addEventListener('change', checkForChanges);      
         } else {
           ShowAlert('This file type is not supported for info data editing.', false).then((result) => {                
-            PrepMessage('AppUnpause');
+            PrepMessage('AppAppGetCurrentDisplayImageData',{closepage:{done:1}});
             homebutton.click(); // Redirect to home if unsupported
           })
         }
       } else {
         ShowAlert('Display window is not open.', false).then((result) => {      
-          PrepMessage('AppUnpause');
+          PrepMessage('AppAppGetCurrentDisplayImageData',{closepage:{done:1}});
           homebutton.click(); // Redirect to home if no display window
         })
       }
   } 
 
   function cancel() {
-    PrepMessage('AppUnpause');
+    PrepMessage('AppAppGetCurrentDisplayImageData',{closepage:{done:1}});
     // Redirect to the options page
     location.href = '/appOptions';
   } 
@@ -98,44 +98,10 @@
   function SaveChanges() {
     ImageEXIFdata.dbEXIFImageComments = newComments.value.trim() === "" ? null : newComments.value.trim();    
     ImageEXIFdata.dbEXIFHiddenImages = hiddenCheckbox.checked;
-    PrepMessage('AppSaveEXIFData'); // Call the function to save changes   
-    PrepMessage('AppUnpause');   
+    PrepMessage('AppSaveEXIFData', ImageEXIFdata); // Call the function to save changes   
+    PrepMessage('AppAppGetCurrentDisplayImageData',{closepage:{done:1}});   
     location.href = '/appOptions';
   }
-
-  async function PrepMessage(payload){  
-    messagePayload = null;
-    switch (payload){
-      case 'AppGetCurrentDisplayImageData':
-        messagePayload = {command:"AppGetCurrentDisplayImageData", data:{closepage:{done:0}}};
-      break;      
-      case 'AppUnpause':
-        messagePayload = {command:"AppGetCurrentDisplayImageData", data:{closepage:{done:1}}};
-      break; 
-      case 'AppSaveEXIFData':
-        messagePayload = {command: "AppSaveEXIFData", data: ImageEXIFdata};
-      break;
-    }  
-    try {
-      // Await the response from the new, async makeRequest function.
-      const returnData = await makeRequest('/app_sendrequest', messagePayload);
-      command = returnData.command;
-      data = returnData.data;
-      // Handle the response based on the command.
-      switch(messagePayload.command){
-        case 'AppGetCurrentDisplayImageData':        
-          if (data === null) return; // No ImageWindow available
-          return data; // Return the image data          
-        break;
-
-        default:          
-        break;
-      }      
-    } catch (error) {      
-      //ShowAlert('Error in html POST. '+ error, false).then((result) => {  })    
-    }    
-  }
-
 
 </script>
 </body>
