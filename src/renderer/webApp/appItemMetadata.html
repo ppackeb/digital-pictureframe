@@ -48,7 +48,7 @@
   async function initialize(){  
       document.getElementById('accept').disabled = true;     
       document.getElementById('accept').style.filter = "grayscale(100%)";              
-      ImageEXIFdata = await PrepMessage('AppGetCurrentDisplayImageData',{closepage:{done:0}});           
+      ImageEXIFdata = await PrepMessage('readMetaData',{closepage:{done:0}});           
       if (ImageEXIFdata != null) {            
         const isSupported = ['.jpeg', '.jpg', '.mp4'].some(ext => ImageEXIFdata.ImagePath.toLowerCase().endsWith(ext));    
         if (isSupported) {
@@ -63,20 +63,20 @@
           hiddenCheckbox.addEventListener('change', checkForChanges);      
         } else {
           ShowAlert('This file type is not supported for info data editing.', false).then((result) => {                
-            PrepMessage('AppAppGetCurrentDisplayImageData',{closepage:{done:1}});
+            PrepMessage('readMetaData',{closepage:{done:1}});
             homebutton.click(); // Redirect to home if unsupported
           })
         }
       } else {
         ShowAlert('Display window is not open.', false).then((result) => {      
-          PrepMessage('AppAppGetCurrentDisplayImageData',{closepage:{done:1}});
+          PrepMessage('readMetaData',{closepage:{done:1}});
           homebutton.click(); // Redirect to home if no display window
         })
       }
   } 
 
   function cancel() {
-    PrepMessage('AppAppGetCurrentDisplayImageData',{closepage:{done:1}});
+    PrepMessage('readMetaData',{closepage:{done:1}});
     // Redirect to the options page
     location.href = '/appOptions';
   } 
@@ -98,8 +98,7 @@
   function SaveChanges() {
     ImageEXIFdata.dbEXIFImageComments = newComments.value.trim() === "" ? null : newComments.value.trim();    
     ImageEXIFdata.dbEXIFHiddenImages = hiddenCheckbox.checked;
-    PrepMessage('AppSaveEXIFData', ImageEXIFdata); // Call the function to save changes   
-    PrepMessage('AppAppGetCurrentDisplayImageData',{closepage:{done:1}});   
+    PrepMessage('WriteMetaData', ImageEXIFdata); // Call the function to save changes       
     location.href = '/appOptions';
   }
 

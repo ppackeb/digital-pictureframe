@@ -119,7 +119,7 @@ function GetHelpAddFolder(){
 async function RebuildAll(){  
   ShowSavingModal(true, "Rebuilding playlists...");  // from customAlert.js   
   await WriteDB();
-  let rebuildResult = await PrepMessage('appRebuildAll'); // rebuild all playlists and images  
+  let rebuildResult = await PrepMessage('rebuildDatabase'); // rebuild all playlists and images  
   if (rebuildResult){           
     ShowSavingModal(false);  // from customAlert.js     
     await ShowAlert("Error rebuilding one or more Playlists", false);
@@ -198,32 +198,30 @@ function prefetchcheck(){
   }
 }
 
-function parseplaylist(selectedplaylist){
-  const playlistName = document.getElementById('playlist_name');
-  playlistName.innerHTML = '';
+// Function to build dropdown and select current item
+function parseplaylist(selectedPlaylist) {
+  const select = document.getElementById("playlist_name");
+  select.innerHTML = ""; // clear any previous options
 
-  Object.keys(playlists).forEach(function(name){
-    parts = name.split('_');
-    displayName = parts[1];
+  // Map playlist strings to {displayName, value}
+  const options = playlists.map(item => ({
+    displayName: item.split("_")[0].toLowerCase(),
+    value: "playlist_" + item
+  }));
 
-    let remainingString = name.slice(9);  //remove 'playlist_'
-    let new_name;
-    if (remainingString.includes('_')){        
-      new_name = remainingString.replace(/_/g, ','); 
-      if (new_name.includes('$')){  
-        new_name = new_name.replace('$', '!');
-      }
-    } else {
-      new_name = remainingString;
-    }
-    const newOption = document.createElement('option');
-    newOption.value = name;
-    newOption.textContent = displayName;
-    playlistName.appendChild(newOption);
+  // Sort alphabetically by displayName
+  options.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+  // Add each option to dropdown
+  options.forEach(opt => {
+    const option = document.createElement("option");
+    option.value = opt.value;
+    option.textContent = opt.displayName;
+    select.appendChild(option);
   });
 
-  playlistName.value = selectedplaylist; // set selected playlist
-
+  // Set selected item (if found)
+  select.value = selectedPlaylist;
 }
 
 
@@ -251,11 +249,11 @@ function ReadUI(){
 
 function WriteUI(data){
   playlists = data.playlists;        
-  document.getElementById('baseDELAY').value = parseInt(data.basedelay);
-  document.getElementById('preloadNUM').value = parseInt(data.preload);
-  document.getElementById('prefetchNUM').value = data.prefetch;            
-  parseplaylist('playlist_'+ data.selplaylist);
-  document.getElementById('nightlybuild').checked = data.nightlyrebuild;
+  document.getElementById('baseDELAY').value = parseInt(data.baseDELAY);
+  document.getElementById('preloadNUM').value = parseInt(data.preloadNUM);
+  document.getElementById('prefetchNUM').value = data.prefetchNUM;            
+  parseplaylist(data.selPLAYLIST);
+  document.getElementById('nightlybuild').checked = data.nightlyRebuild;
   document.getElementById('AppStartDirectory').value = data.appStartDir;   
   let timeOptions = generateTimeOptions();
   populateDropdown(StartTime, timeOptions);

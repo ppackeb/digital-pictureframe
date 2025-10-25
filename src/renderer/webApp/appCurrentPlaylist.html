@@ -33,15 +33,15 @@
 <script src="../../common/customAlert.js"></script>
 <script>
 
-  let playlistNames = {}; //all loaded playlists
+  let playlistNames = []; //all loaded playlists
   let selectedPlaylist = ""; // user selected playlist from click
   let currentPlaylist = ""; //currently loaded playlist
 
 
-  async function SaveChanges(){
+  async function SaveChanges(){    
     if (selectedPlaylist !== currentPlaylist) {
       let savedata = {
-        selPLAYLIST: selectedPlaylist
+        selPLAYLIST: 'playlist_'+ selectedPlaylist
       };      
       let result = await PrepMessage("app_writeDB", savedata);
     }    
@@ -55,31 +55,21 @@
   
   function WriteUI(data) {
     const playlistTable = document.getElementById("playlists");
-    playlists = data.playlists;
-    selectedPlaylist = "playlist_"+data.selplaylist;  
-    currentPlaylistDisplayname = selectedPlaylist.substring('playlist_'.length);
+    playlistNames = data.playlists; // does not include playlist_   but includes exclude/include statements
+    currentPlaylist = data.selplaylist;  // excludes playlist_    
+        
+    playlistNames = playlistNames.sort();    
 
-    playlistNames = Object.keys(playlists);
-
-    // Sort alphabetically by display name (second part)
-    playlistNames.sort((a, b) => {
-      const nameA = a.split('_')[1]?.toLowerCase() || '';
-      const nameB = b.split('_')[1]?.toLowerCase() || '';
-      return nameA.localeCompare(nameB);
-    });
-
-    playlistNames.forEach((name, index) => {
-      parts = name.split('_');
-      displayName = parts[1];
-      FullName = name.substring('playlist_'.length);
-      
+    playlistNames.forEach((playlistName, index) => {
+            
       let newRow = playlistTable.insertRow();
 
       // Highlight if this is the selected playlist
-      if (FullName === currentPlaylistDisplayname) {
-        newRow.innerHTML = `<td>${displayName}</td> <td><img src="../renderer/assets/images/app star.png"></td>`;        
+      if (playlistName === currentPlaylist) {
+        // remove everything after the _
+        newRow.innerHTML = `<td>${playlistName.split("_")[0]}</td> <td><img src="../renderer/assets/images/app star.png"></td>`;        
       }else{
-        newRow.innerHTML = `<td>${displayName}</td> <td></td>`;         
+        newRow.innerHTML = `<td>${playlistName.split("_")[0]}</td> <td></td>`;         
       }       
     });
   }

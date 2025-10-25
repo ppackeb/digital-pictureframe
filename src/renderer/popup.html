@@ -17,15 +17,13 @@
     </head>
     <body>
         <p id='titleText'></p>
-        <img id="readingimages" src="./assets/images/copyfiles.png">
-    </body>        
+        <img id="readingimages" src="./assets/images/copyfiles.png">          
     <script type="text/javascript" src="../common/requireModule.js"></script>
     <script>
-
-
       // Set popup title
-    ipcRenderer.on('popup-title', (event, arg) => {
-        document.getElementById('titleText').innerHTML = "<center><h3>" + arg + "</h3></center>";        
-    });
-    
+        ipcRenderer.on('popup-title', (event, arg) => {
+            document.getElementById('titleText').innerHTML = "<center><h3>" + arg + "</h3></center>";        
+        });    
     </script>
+    </body>
+    </html>

@@ -38,38 +38,28 @@
   let playlistNames = null;
 
   async function initialize(){
-    returnData = await PrepMessage('app_readDB')
+    returnData = await PrepMessage('app_readDB');
     WriteUI(returnData);        
   }
 
   function WriteUI(data) {
-    playlists = data.playlists;
-    SelectedPlaylist = data.selplaylist;  
     const playlistTable = document.getElementById("playlists");
+    playlistNames = data.playlists; // does not include playlist_   but includes exclude/include statements
+    currentPlaylist = data.selPLAYLIST.replace(/^playlist_/, "");  // exclude playlist_    
+        
+    playlistNames = playlistNames.sort();    
 
-    playlistNames = Object.keys(playlists);
-
-    // Sort by the second part (displayName) in a case-insensitive manner
-    playlistNames.sort((a, b) => {
-      const nameA = a.split('_')[1]?.toLowerCase() || '';
-      const nameB = b.split('_')[1]?.toLowerCase() || '';
-      return nameA.localeCompare(nameB);
-    });
-
-    playlistNames.forEach((name, index) => {
-      parts = name.split('_');
-      displayName = parts[1];
-      PlaylistFullName = name.replace(/^playlist_/, '');
-      
+    playlistNames.forEach((playlistName, index) => {
+            
       let newRow = playlistTable.insertRow();
-      
-        // Highlight if this is the selected playlist
-      if (PlaylistFullName === SelectedPlaylist) {
-        newRow.innerHTML = `<td>${displayName}</td> <td><img src="../renderer/assets/images/app star.png"></td>`;
-      }else{
-        newRow.innerHTML = `<td>${displayName}</td> <td></td>`;            
-      }     
 
+      // Highlight if this is the selected playlist
+      if (playlistName === currentPlaylist) {
+        // remove everything after the _
+        newRow.innerHTML = `<td>${playlistName.split("_")[0]}</td> <td><img src="../renderer/assets/images/app star.png"></td>`;        
+      }else{
+        newRow.innerHTML = `<td>${playlistName.split("_")[0]}</td> <td></td>`;         
+      }       
     });
   }
 
@@ -81,7 +71,7 @@
     if (row && document.getElementById("playlists").contains(row)) {
       // Do something with the row            
       selectedPlaylist = playlistNames[row.rowIndex];
-      location.href = `/appEditPlaylist?value=${encodeURIComponent(selectedPlaylist)}`;
+      location.href = `/appEditPlaylist?value=${encodeURIComponent("playlist_"+selectedPlaylist)}`;
     }
   });
 

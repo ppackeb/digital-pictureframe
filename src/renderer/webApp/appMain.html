@@ -20,8 +20,7 @@
 
     <!-- Second row -->
     <div class="button-row two-items">
-      <input type="image" id="openModalButton" name="openModalButton" src="../renderer/assets/images/slider100img.png" onclick="document.getElementById('slider-modalOverlay').style.display='block'">
-      <input type="image" id="options" name="options" src="../renderer/assets/images/app options.png" onclick="location.href='/appOptions';">
+      <input type="image" id="openModalButton" name="openModalButton" src="../renderer/assets/images/slider100img.png" onclick="Showslider()">      <input type="image" id="options" name="options" src="../renderer/assets/images/app options.png" onclick="location.href='/appOptions';">
     </div>
 
     <!-- Third row -->
@@ -61,9 +60,11 @@ var playpauseswitch = 1; //tracks play pause state 1 is playing 0 is paused
 
 async function initialize(){  
   //needed async await to ensure the order of the messages
-  MutePlayState = await PrepMessage('GetMutePlayState',"");  
-  if (MutePlayState === null) return; // No ImageWindow available
-  playpauseswitch = MutePlayState.playstate;
+  MutePlayState = await PrepMessage('GetMutePlay', null);    
+  if (MutePlayState == null){
+    return;
+  }
+  playpauseswitch = MutePlayState.playstate;  
   document.getElementById('slider').value = MutePlayState.volume;
   setSliderImage(MutePlayState.volume);
   play_pause();
@@ -74,10 +75,20 @@ async function setPlayPause(){
   PrepMessage('direction',play_pause_state);
 }
 
+async function Showslider(){
+  MutePlayState = await PrepMessage('GetMutePlay', null); 
+  if (MutePlayState == null) {
+    return;
+  }else{
+    document.getElementById('slider-modalOverlay').style.display = 'block';
+  }
+}
 
 document.getElementById('openModalButton').addEventListener('click', async function () {
-  MutePlayState = await PrepMessage('GetMutePlayState',"");
-  if (MutePlayState === null) return; // No ImageWindow available
+  MutePlayState = await PrepMessage('GetMutePlay', null);  
+  if (MutePlayState == null) {     
+    return; // No ImageWindow available
+  }
   playpauseswitch = MutePlayState.playstate;
   document.getElementById('slider').value = MutePlayState.volume;
   setSliderImage(MutePlayState.volume);

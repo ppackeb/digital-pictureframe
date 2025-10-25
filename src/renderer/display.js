@@ -172,8 +172,8 @@ async function addLoadedImagesData(filePath) {
 async function MP4GetVideoData(videoPath) {  
     // true/false for hiddenFlag and text or null for imageComment 
     let hiddenflag = false; // Initialize hidden flag
-    let usercomments = null; // Initialize user comments
-    let ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'ffmpeg.exe');
+    let usercomments = null; // Initialize user comments    
+    let ffmpegPath = path.join(__dirname, '..', 'renderer', 'assets', 'ffmpeg', 'ffmpeg.exe');    
     // Use ffmpeg to read metadata
     const args = ['-i', videoPath, '-f', 'ffmetadata', '-'];
     try {
@@ -366,7 +366,7 @@ async function rotateMP4(ItemInfo) {
   
 
     rotatingMP4 = true;
-    let ffmpegPath = path.join(__dirname, 'assets', 'ffmpeg', 'ffmpeg.exe');
+    let ffmpegPath = path.join(__dirname, '..', 'renderer', 'assets', 'ffmpeg', 'ffmpeg.exe');
 
     // Temp rotated output
     let outputPath = videoPath.replace(/\.mp4$/i, '_rotated.mp4');

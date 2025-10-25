@@ -7,6 +7,13 @@ const sqlite3 = require('better-sqlite3'); // used for database access
 const express = require('express');
 const AppServer = express();
 const router = express.Router();
+const fs = require('fs');  // used for all file i/o
+const { exec } = require('child_process');
+const { execFile } = require('child_process');   
+const { ExifTool } = require('exiftool-vendored');  //the curly brackets { ExifTool } destructures the ExifTool property from the module's exports, so you can use it directly in your code
+const exiftool = new ExifTool();
+
+
 
 const devtools = true; // enables dev tool windows
 
@@ -19,7 +26,6 @@ let PlaylistConfigWindow = null; //playlist.html
 let Popup = null; //popup.html
 let res_app_sendrequest = null;  //hold req for call from appServer.html for a return value
 let db = null; // database connection
-
 
 
 /*-----------------------------------*/
@@ -39,15 +45,20 @@ AppServer.use(express.static(path.join(path.dirname(__dirname),'renderer','webAp
 //  from correct DB for appserver port
 if (app.isPackaged) {  
   process.env.NODE_ENV = 'production';  
-  db = new sqlite3(path.join(process.resourcesPath, "app.asar.unpacked/db/PlaylistDB.db"));  
+  db = new sqlite3(path.join(process.resourcesPath, "app.asar.unpacked/db/PlaylistDB.db"));    
   AppServer.listen(parseInt(db.prepare('SELECT Value FROM global_settings WHERE Setting = ?').get('appPort').Value));  
   
 } else {
   process.env.NODE_ENV = 'development';
-  db = new sqlite3('./db/PlaylistDB.db');
+  db = new sqlite3('./db/PlaylistDB.db');  
   AppServer.listen(parseInt(db.prepare('SELECT Value FROM global_settings WHERE Setting = ?').get('appPort').Value));    
 }
 
+const DB = require(path.join(__dirname, '..', 'common', 'DBFunctions.js'));  // load DBFunctions.js
+DB.initDBFunctions({
+  dbInstance: db,
+  electron: { app, BrowserWindow, screen, ipcMain, dialog, webContents }
+});
 
 
 //(/:page?) captures all requests to the server not just the html pages (e.g., /app%20zoom.png) but any request to the server.
@@ -101,31 +112,284 @@ const activeRequests = new Map();
 // AppServer.use(require('body-parser').json());
 // ...
 // ---
+let ipc_index =[];
+let ipc_main = ["app_readDB","app_writeDB","refresh","ImageDir","DeletePlaylist","NewPlaylist","WriteMetaData","readNotifications","clearNotifications","rebuildDatabase","readQRCode"];
+let ipc_display = ["information","readMetaData","information","direction","filectrl","volume","GetMutePlay","ZoomImage"];
+const arrayMap = {
+  ipc_index,
+  ipc_main,
+  ipc_display
+};
 
 // Handles POST requests from the client.
-router.post('/app_sendrequest', (req, res) => {
-    // Extract the unique request_id from the payload.
-    const { request_id, ...payloadWithoutId } = req.body;
-    
-    // Store the response object (res) using the request_id as the key.
-    if (request_id) {
-        activeRequests.set(request_id, res);
-    } else {
-        // Handle case where request_id is missing, e.g., send an error response.
-        return res.status(400).json({ error: 'Missing request_id' });
-    }
+router.post('/app_sendrequest', async (req, res) => {    
+  // Extract the unique request_id from the payload.
+  const { request_id, ...payloadWithoutId } = req.body;  
+  
+  // Store the response object (res) using the request_id as the key.
+  if (request_id) {
+      activeRequests.set(request_id, res);
+  } else {
+      // Handle case where request_id is missing, e.g., send an error response.
+      return res.status(400).json({ error: 'Missing request_id' });
+  }
 
-    // Now, send the payload to the appserverWindow, including the request_id.
-    // The appserverWindow will use this ID to send the response back.
-    appserverWindow.webContents.send('appSendRequest', {
+  // Now, send the payload to the appserverWindow, including the request_id.
+  // The appserverWindow will use this ID to send the response back.
+  
+  const foundIn = Object.keys(arrayMap).find(key => arrayMap[key].includes(req.body.command));
+  switch(foundIn){
+    case "ipc_main":
+      ipc_mainPOST(req.body);
+    break;
+    case "ipc_display":      
+      ipc_displayPOST(req.body);         
+    break;
+    default:
+      appserverWindow.webContents.send('appSendRequest', {  
         ...payloadWithoutId,
         request_id: request_id
-    });
+      });
+    break;
+  }
 });
+
+function ipc_displayPOST(payload) {  
+  win = ImageWindow;
+  channel = "ipc_display";
+  let response = {command: payload.command, data: null}; // Default response structure  
+  request_id = payload.request_id;
+
+  if (!win || win.isDestroyed() || !win.webContents){
+    ipcMain.emit('app_sendrequest_response', null, { request_id, responseData: response });
+    return;
+  }
+  
+  return new Promise((resolve, reject) => {
+    
+        // Listen for one reply only (auto-cleanup)
+    ipcMain.once(`${channel}-reply-${request_id}`, (event, response) => {
+  
+      // resolve the response
+      resolve(response);
+      // Emit after promise has resolved (next tick)
+      process.nextTick(() => {
+        ipcMain.emit('app_sendrequest_response', null, { request_id, responseData: response });
+      });
+    });
+
+    // Send the message with requestId and data
+    win.webContents.send(channel, payload);
+
+  });
+}
+
+async function ipc_mainPOST (payload){
+    // 1. Destructure the request_id from the incoming data object.
+  const { request_id, ...payloadWithoutId } = payload;
+
+  // Use the payload without the ID for processing.
+  const command = payloadWithoutId.command;
+  const requestData = payloadWithoutId.data;  
+  
+  let response = {command: command, data: null}; // Default response structure  
+
+  switch (command){
+    case "app_readDB":
+      let GlobalSettings = DB.readDataBase(); 
+      response.data = GlobalSettings;      
+    break;
+    case "app_writeDB":
+      DB.appWriteDB(requestData);
+      ipcMain.emit('resetdisplaywindow', null);
+    break;
+    case "refresh":
+      ipcMain.emit('resetdisplaywindow', null);
+    break;
+    case "ImageDir":
+      response = await getStartDir(requestData);      
+    break;
+    case "DeletePlaylist":
+      DeletePlaylist(requestData);
+    break;
+    case "NewPlaylist":
+      response.data = await NewPlaylist(requestData);
+    break;
+    case "WriteMetaData":
+      WriteMetaData (requestData);
+    break;
+    case "readNotifications":
+      response.data = DB.readRotateDeleteError();      
+    break;
+    case "clearNotifications":
+      DB.ClearRotateDelete();
+    break;
+    case "rebuildDatabase":    
+      response.data = await DB.rebuildall(); // from dbfunctions.js         
+    break;
+    case "readQRCode":
+      response.data = getLocalIPs();
+    break;
+  }  
+  ipcMain.emit ('app_sendrequest_response', null, {request_id: request_id, responseData: response});
+}
+
+async function WriteMetaData(data){
+  existingHiddenFlag = "";
+  if (data.dbEXIFHiddenImages == true){      
+    existingHiddenFlag = 'Hiddenflag=Hidden ';
+  }
+
+  const existingComment = data.dbEXIFImageComments ? data.dbEXIFImageComments.trim() : "";
+  const updatedComment = existingHiddenFlag + existingComment;   
+
+  // Check if extension is jpg or jpeg before writing EXIF
+  const ext = data.ImagePath.split('.').pop().toLowerCase();
+  try{
+    if (ext === 'jpg' || ext === 'jpeg') {
+      await exiftool.write(data.ImagePath, { UserComment: updatedComment }, ["-overwrite_original"]);
+    } else {                        
+      await addCommentToMP4(data.ImagePath, updatedComment);              
+    }
+  } catch (error){
+    writeRotateDeleteError(null, null, 'Error writing EXIF data:', error);      
+  }
+}
+
+
+async function addCommentToMP4(filePath, commentString) {    
+  return new Promise((resolve, reject) => {
+      const tempFilePath = filePath.replace(/\.mp4$/, '_temp.mp4');
+      const args = [
+        '-i', filePath,
+        '-metadata', `comment=${commentString}`,
+        '-c', 'copy',
+        tempFilePath
+      ];
+      const ffmpegPath = path.join(__dirname, '..', 'renderer', 'assets', 'ffmpeg', 'ffmpeg.exe');
+      const ffmpegProcess = execFile(ffmpegPath, args, (error, stdout, stderr) => {
+        if (error) {            
+          cleanupTempFile(tempFilePath); // Ensure temp file is cleaned up   
+          writeRotateDeleteError(null, null, `Failed to add comment to MP4: ${stderr}`);         
+          reject();
+          return;
+        }
+      });
+
+      // Wait for the ffmpeg process to fully close
+    ffmpegProcess.on('close', (code) => {
+      if (code !== 0) {          
+        writeRotateDeleteError(null, null, `FFmpeg process exited with code ${code}`);
+        cleanupTempFile(tempFilePath); // Ensure temp file is cleaned up
+        reject();
+        return;
+      }
+
+        // Proceed with file operations after ffmpeg has completed
+      fs.unlink(filePath, (unlinkError) => {
+        if (unlinkError) {
+          writeRotateDeleteError(null, null, 'Error deleting original file:', unlinkError, 'cannot replace file');            
+          // Cleanup the temp file and resolve without deleting filePath
+          cleanupTempFile(tempFilePath);
+          reject();
+          return;
+        }
+
+        fs.rename(tempFilePath, filePath, (renameError) => {
+          if (renameError) {
+            writeRotateDeleteError(null, null, 'Error replacing original file:', renameError);              
+            cleanupTempFile(tempFilePath); // Ensure temp file is cleaned up
+            reject();
+            return;
+          }                                
+          resolve();
+        });
+      });
+    });
+  });
+}
+
+function cleanupTempFile(tempFilePath) {
+  fs.unlink(tempFilePath, (err) => {
+    if (err) {
+      errormsg = `Failed to clean up temp file (${tempFilePath}):`, err.message
+      writeRotateDeleteError(null, null, errormsg); // located in DBFunctions.js
+      
+    }
+  });
+}
+
+async function NewPlaylist(data){
+  let PlaylistCreated = false;
+  playlistdirs = data.playlistDir;
+  new_name = data.playlistname;
+
+  ipcMain.emit('popup',null,'Building Index'); 
+  try{
+    PlaylistCreated = await DB.CreateAddPlaylistTable(new_name,playlistdirs, true);                                         
+  }catch (err){
+    //writeRotateDeleteError(null, null, 'Error creating playlist table: '+ new_name + ' ' + err.message);   
+    PlaylistCreated = false;   
+  }    
+  ipcMain.emit('playlist_updated', '');         
+  ipcMain.emit('close_popup', '');    
+  return PlaylistCreated;
+}
+
+function DeletePlaylist(data){        
+  db.prepare('DROP TABLE IF EXISTS '+ data).run(); // drop selected playlist table
+  let GlobalSettings = DB.readDataBase(); 
+  let tablenamearray = GlobalSettings.playlists
+  //var tablenamearray = DB.readPlaylistTableNames();
+  playlistHolder = GlobalSettings.selPLAYLIST;
+  g_selPLAYLIST = 'playlist_'+ tablenamearray[0];    
+  DB.writeDataBase();
+  ipcMain.emit('playlist_updated', null);   
+  // if the running playlist is the deleted playlist, reset display with next playlist in the database table    
+  if (data == playlistHolder){      
+    ipcMain.emit('resetdisplaywindow', null); 
+  }
+}
+
+
+async function getStartDir(SelectedDir) { 
+  var results = [];   
+  let GlobalSettings = DB.readDataBase();// read playlist data and paths into DBFunctions.js        
+  if (SelectedDir == 'TopDir') {                 
+    if (GlobalSettings.appStartDir.charAt(0) =='\\'){  // just in cased a server path is chosen eg. \\diskstation\photo then dont add escape code \
+      results.push(GlobalSettings.appStartDir);  
+      SelectedDir = GlobalSettings.appStartDir;            
+    }else{
+      results.push(GlobalSettings.appStartDir);  
+      SelectedDir = GlobalSettings.appStartDir.replace(/\\/g, '\\\\');            
+    }                  
+  }else{
+    results.push(SelectedDir);  
+  }
+  returndata = {command: "startdir", data:null}; // dummy object to populate for return    
+  try{
+    await fs.readdirSync(SelectedDir).sort().forEach(function (dirContent) {              
+      dirContentPath = path.resolve(SelectedDir, dirContent);
+      try{  // added try:catch here as statSync throse a EBUSY error if a locked file or directory is tested
+        if (fs.statSync(dirContentPath).isDirectory() && dirContent.charAt(0) != '#' && dirContent.charAt(0) != '.' && dirContent.charAt(0) !='$') {
+            results.push(dirContentPath);
+        }
+      }catch (err){
+        
+      }
+    });
+    returndata.data = results        
+  }catch (err){
+    returndata.data = 'bad dir';        
+  }      
+  return returndata;
+}
+
 
 // Responds to the client with the data from the appserverWindow.
 // This IPC message is triggered from the appServer.html renderer process.
-ipcMain.on('app_sendrequest_response', (event, arg) => {
+
+ipcMain.on('app_sendrequest_response', (event, arg) => { // event is not needed once all is re-written
     // We expect the argument to be an object with a request_id and the response data.
     const { request_id, responseData } = arg;
     
@@ -172,12 +436,12 @@ ipcMain.handle('GetMutePlay', async (event, arg) => {
 })
 
 
-ipcMain.handle('AppGetCurrentDisplayImageData', async (event, arg) => {  
+ipcMain.handle('app_readMetaData', async (event, arg) => {  
   if (!ImageWindow) return null; 
   
-    ImageWindow.webContents.send('AppGetCurrentDisplayImageData', arg);
+    ImageWindow.webContents.send('app_readMetaData', arg);
     const response = await new Promise((resolve) => {
-    ipcMain.once('AppGetCurrentDisplayImageDataResponse', (event, response) => {      
+    ipcMain.once('app_readMetaData_response', (event, response) => {      
       resolve(response);
     });
   });
@@ -244,12 +508,8 @@ ipcMain.on('close_image_window', async (event, arg) => {
 
 ipcMain.on('close_popup', (event, arg) => {
   if (Popup){
-    Popup.close(); // fires Popup.on('closed', function ()... which sets ImageWindow to null
-     // Send acknowledgment back to the renderer process
-    event.sender.send('close_popup_ack');
-  }else{
-    event.sender.send('close_popup_ack');
-  }  
+    Popup.close(); // fires Popup.on('closed', function ()... which sets ImageWindow to null          
+  }
 })
 
 ipcMain.on('close_playlist_window', (event, arg) => {
@@ -294,22 +554,24 @@ function getPicFrameUptime(){
   return picframeuptime;
 }
 
-// use electron to get local IP addresses
+// for ipcRenderer.invoke()
 ipcMain.handle('get-local-ips', () => {
+  return getLocalIPs(); // returns the IPs to the renderer
+});
+
+
+function getLocalIPs() {
   const nets = os.networkInterfaces();
   const results = { ipv4: [], ipv6: [] };
   for (const name of Object.keys(nets)) {
     for (const net of nets[name]) {
-      if (net.family === 'IPv4' && !net.internal) {
-        results.ipv4.push(net.address);
-      }
-      if (net.family === 'IPv6' && !net.internal) {
-        results.ipv6.push(net.address);
-      }
+      if (net.family === 'IPv4' && !net.internal) results.ipv4.push(net.address);
+      if (net.family === 'IPv6' && !net.internal) results.ipv6.push(net.address);
     }
   }
   return results;
-});
+}
+
 
 /*-----------------------------------*/
 // load html page functions
@@ -490,26 +752,34 @@ function writeRotateDeleteError(Rotate, Delete, Error){
 ipcMain.on('popup', async (event, arg) => {  
 
   let popupCaller = null;
-  const fullUrl = event.sender.getURL();// Full file URL
-  const filePath = new URL(fullUrl).pathname;// Convert file:// URL to a proper filesystem path
+  if (event == null){
+    filename = "main.js";
+  }else{
+    const fullUrl = event.sender.getURL();// Full file URL
+    const filePath = new URL(fullUrl).pathname;// Convert file:// URL to a proper filesystem path
+    // Handle Windows leading slash issue
+    const normalizedPath = process.platform === 'win32' && filePath.startsWith('/')
+      ? filePath.slice(1)
+      : filePath;
 
-  // Handle Windows leading slash issue
-  const normalizedPath = process.platform === 'win32' && filePath.startsWith('/')
-    ? filePath.slice(1)
-    : filePath;
-
-  // Just the filename (e.g. index.html)
-  const filename = path.basename(normalizedPath);
+    // Just the filename (e.g. index.html)
+    const filename = path.basename(normalizedPath);
+  }
+  
+  
 
   switch (filename){
     case 'index.html':
       popupCaller = mainWindow;
     break;
     case 'display.html':
-      popupCaller = ImageWindow;
-    break;
-    case 'appServer.html':
-      popupCaller = ImageWindow;
+    case 'main.js':
+      if (ImageWindow){ 
+        popupCaller = ImageWindow;
+      }else{
+        popupCaller = mainWindow;
+      }
+      
     break;
   }  
 
@@ -603,9 +873,7 @@ app.on('ready', () => {
 app.on('window-all-closed', function () {  
   //db.close();
   db.close();  
+  exiftool.end;
   app.quit();  
 })
-
-
-
 

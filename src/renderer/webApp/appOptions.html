@@ -49,11 +49,12 @@
 <script src="../../common/customAlert.js"></script> 
 <script>
 
-let hideImagesState = 0; // 1 = hide, 0 = show
+  let hideImagesState = 0; // 1 = hide, 0 = show
 
   async function initialize() {
-    let currentHideImagesState = PrepMessage('GethideImagesState');
-    hideImagesState = parseInt(currentHideImagesState,10);             
+    let globalData = await PrepMessage('app_readDB');
+    hideImagesState = globalData.hideImages
+    hideImagesState = parseInt(hideImagesState,10);             
     if (hideImagesState){               
       document.getElementById('HiddenImages').setAttribute('src', 'app hide.png');             
     }else{
@@ -62,56 +63,18 @@ let hideImagesState = 0; // 1 = hide, 0 = show
   } 
 
   document.getElementById('HiddenImages').addEventListener('click', function() {
-  hideImagesState = hideImagesState === 1 ? 0 : 1;
-  if (hideImagesState == 1) { // hidestate true / false
-    this.src = 'app hide.png'; // hide true
-  } else {
-    this.src = 'app unhide.png';
-  }
-  PrepMessage('appSetHideShowImages', hideImagesState);
-});
-
-/*
-  async function PrepMessage(payload){   
-    let messagePayload = null;
-    switch (payload){
-      case 'GethideImagesState':
-        messagePayload = {command:"GethideImagesState", data:""};
-      break;  
-      case 'appSetHideShowImages':      
-        messagePayload = {command:"appSetHideShowImages", data:hideImagesState}; 
-      break;
-      case 'refresh':      
-        messagePayload = {command:"refresh", data:""};               
-      break; 
-      case 'data':
-        messagePayload = {command:"information", data:"data"};    
-      break;
-    }  
-    try {
-      // Await the response from the new, async makeRequest function.
-      const returnData = await makeRequest('/app_sendrequest', messagePayload);
-      command = returnData.command;
-      data = returnData.data;
-      // Handle the response based on the command.
-      switch(messagePayload.command){
-        case 'GethideImagesState':          
-          hideImagesState = parseInt(data,10);             
-          if (hideImagesState){               
-            document.getElementById('HiddenImages').setAttribute('src', 'app hide.png');             
-          }else{
-            document.getElementById('HiddenImages').setAttribute('src', 'app unhide.png');             
-          }
-        break;
-
-        default:          
-        break;
-      }      
-    } catch (error) {      
-      //ShowAlert('Error in html POST. '+ error, false).then((result) => {  })    
+    hideImagesState = hideImagesState === 1 ? 0 : 1;
+    if (hideImagesState == 1) { // hidestate true / false
+      this.src = 'app hide.png'; // hide true
+    } else {
+      this.src = 'app unhide.png';
     }
-  }
-*/
+    let savedata = {
+      hideImages: hideImagesState
+    };  
+    PrepMessage('app_writeDB', savedata);    
+  });
+
 
 </script>
 </body>  

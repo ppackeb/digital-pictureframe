@@ -112,8 +112,9 @@
    });
 
    // return hidden image status to appMain.html
-   ipcRenderer.on('AppGetCurrentDisplayImageData', (event, arg) => {        
-         switch (arg.data.closepage.done){
+   async function  readMetaData(arg){   
+      let response = null;
+         switch (arg.closepage.done){
          case 0: // page is opened 
             if (g_playpause == 1){ // 0 paused, 1 playing               
                document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'p'}));
@@ -127,21 +128,20 @@
                IsHidden = LoadedImagesData[imgctr-1].HiddenFlag;
                ImgComments = LoadedImagesData[imgctr-1].Comments;
             }         
-            const responseData = {
+            response = {
                ImagePath: ImagePath, // String: Path of the current image
                dbEXIFHiddenImages: IsHidden, 
                dbEXIFImageComments: ImgComments
-            };
-            // Send the response back to the main process, where it is sent to appServer.html and then call app.html page                     
-            ipcRenderer.send('AppGetCurrentDisplayImageDataResponse', responseData);
+            };                        
          break;
          case 1:
             if (g_playpause == 0){ // 0 paused, 1 playing         
                document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'p'}));
             }
          break;
-      }
-   });
+      }         
+      return response;
+   };
    
 
    async function initialize(){    
@@ -153,8 +153,7 @@
    let displayImg = null; // used for zoom function
    let zoomBoundingBox = null; // used for zoom function
    let zoomlensExited = false; // if multiple users have zoom open, need to track when one closes to remove zoomlens   
-   ipcRenderer.on('ZoomLocation', (event, arg) => {           
-      arg = arg.data;
+   function ZoomImage(arg) {                      
       switch (arg.closepage.done){
          case 0: // page is opened 
             zoomlensExited = false; // page is opened, zoom timeout is not active
@@ -271,7 +270,7 @@
             }
          break;
       }
-   });
+   };
 
    // failure during rebuild database, so display failed icon
    ipcRenderer.on('dbrebuildfailure', (event, arg) => {   
@@ -286,13 +285,27 @@
       },15000); 
     });
 
-    ipcRenderer.on('appInfo', (event, arg) => {  // pass data from appServer to control the current slideshow            
-      var AppData = arg.data;
-      var AppCommand = arg.command;       
+    
+    //ipcRenderer.on('appInfo', (event, arg) => {  // pass data from appServer to control the current slideshow            
+   ipcRenderer.on('ipc_display', async (event, arg) => {
+      let AppData = arg.data;
+      let AppCommand = arg.command;   
+      let request_id = arg.request_id;
+      // default response
+      let response = {
+        command: AppCommand,
+        data: null
+      }; 
       switch (AppCommand){
          case 'volume':                    
             videoVolume = AppData;
             document.getElementById('playvideo').volume = AppData;
+         break;
+         case 'GetMutePlay':            
+            response.data = { 
+               volume: document.getElementById('playvideo').volume,
+               playstate: g_playpause 
+            };    
          break;
          case 'direction':
             switch (AppData){
@@ -308,6 +321,9 @@
                break;
                default:
             }
+         break;
+         case 'readMetaData':
+            response.data = await readMetaData(AppData);
          break;
          case 'information':
             switch(AppData){
@@ -333,9 +349,14 @@
                break;
                default:
             }
-         break;         
+         break;
+         case 'ZoomImage':
+            ZoomImage(AppData);
+         break;
          default:         
       }
+      //ipcRenderer.send(`appInfo-reply-${arg.request_id}`, response);
+      ipcRenderer.send(`ipc_display-reply-${request_id}`, response);
     })
 
 

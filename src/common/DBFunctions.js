@@ -3,6 +3,41 @@ global playlist data
 runtime variable is used for enableing debug.  It is disabled (set to 1) in the distributed playlistDB file
 db is coming from requireModule.js where it is defined and set
 */
+//const fs = require('fs');  // used for all file i/o
+const fsPromises = require('fs').promises; // used for promise based file i/o
+const DBFunctionPath = require('path'); // used to for path info
+const sqlite3 = require('better-sqlite3'); // used for database access
+let db = null;
+
+if (process.env.NODE_ENV === 'development'){
+    db = new sqlite3('./db/PlaylistDB.db');    // database used for all storage.  If this passed in Dev env otherwise in release env
+    db.pragma('journal_mode = WAL');
+}else{
+    db = new sqlite3(DBFunctionPath.join(process.resourcesPath, "app.asar.unpacked/db/PlaylistDB.db"));    // in release env
+    db.pragma('journal_mode = WAL');
+}
+
+function initDBFunctions({ dbInstance, electron }) {
+    // set internal handles used by functions above (assumes code references these variable names)
+    db = dbInstance;
+    electronRefs = electron;  // now you can use electronRefs.ipcMain, etc.
+}
+
+// Export functions you need externally
+module.exports = {  
+    initDBFunctions, 
+    readDataBase,
+    readGlobalSettings,  // requires db.
+    readPlaylistTableNames, // requires db.
+    readPlaylistPaths, // requires db.
+    writeDataBase,     // requires db. 
+    CreateAddPlaylistTable,
+    appWriteDB,
+    writeRotateDeleteError,
+    readRotateDeleteError,
+    ClearRotateDelete,
+    rebuildall
+}
 
 
 var g_playlists;
@@ -31,16 +66,34 @@ async function rebuildall() {
         return;
     }
     isRebuilding = true;
+        
+    runningContext = 'renderer';  // default to this as its teh most common
+
+    if (process && process.type === 'browser') {
+        // In main process (loaded by main.js)
+        runningContext = 'main';
+    }
+
     
+
+
     let errorOccured = false;
-    ipcRenderer.send('popup', 'Rebuilding Index');
+    if (runningContext == "renderer"){
+        ipcRenderer.send('popup', 'Rebuilding Index');
+    }else{
+        electronRefs.ipcMain.emit('popup', null, 'Rebuilding Index');
+    }
     var PlaylistTables = readPlaylistPaths();
     for (const [TableName, dirPaths] of Object.entries(PlaylistTables)) {    
         errorOccured = await CreateAddPlaylistTable(TableName, dirPaths, true)     
     }  
-    ipcRenderer.send('close_popup', '');
-    isRebuilding = false;
+    if (runningContext == "renderer"){  
+        ipcRenderer.send('close_popup', '');
+    }else{
+        electronRefs.ipcMain.emit('close_popup', '');
+    }
     
+    isRebuilding = false;    
     return errorOccured;
 }
 
@@ -101,13 +154,13 @@ async function CreateAddPlaylistTable(PlaylistName, StartingPathArray, FirstRun,
             const dirPromises = [];
 
             for (const file of files) {
-                const filePath = path.join(StartingPath, file.name);
+                const filePath = DBFunctionPath.join(StartingPath, file.name);
 
                 if (file.isDirectory()) {
                     // recurse
                     dirPromises.push(CreateAddPlaylistTable(PlaylistName, [filePath], false));
                 } else {
-                    const ext = path.extname(filePath).toLowerCase();
+                    const ext = DBFunctionPath.extname(filePath).toLowerCase();
                     if (filetypes.includes(ext)) {
                         if (includeArray.length !== 0)
                             containsInclude = includeArray.some(sub => StartingPath.toLowerCase().includes(sub.toLowerCase()));
@@ -128,6 +181,7 @@ async function CreateAddPlaylistTable(PlaylistName, StartingPathArray, FirstRun,
             await new Promise(resolve => setImmediate(resolve));
 
         } catch (err) {
+            console.log(err);
             // log or ignoreoldSelections            
         }
     }
@@ -151,103 +205,6 @@ async function CreateAddPlaylistTable(PlaylistName, StartingPathArray, FirstRun,
 }
 
 
-
-/*
-async function CreateAddPlaylistTable(PlaylistName, StartingPathArray, FirstRun, FirstRunOriginal = FirstRun) { // returns true if created, false if error
-    const includeArray = [];
-    const excludeArray = [];
-    let DynamicArray = [];
-    let writetoDB = true;
-
-    // Check for dynamic playlist
-    const remainingString = PlaylistName.split('_').slice(2).join('_');
-    if (remainingString.length !== 0) {
-        DynamicArray = remainingString.split('_');
-        DynamicArray.forEach(item => {
-            if (item.includes('$')) {
-                excludeArray.push(item.replace('$', ''));
-            } else {
-                includeArray.push(item);
-            }
-        });
-    }
-
-    if (FirstRun === true) {
-        db.exec(`CREATE TABLE IF NOT EXISTS "${PlaylistName}" (
-            id INTEGER PRIMARY KEY,
-            PlaylistPaths TEXT,
-            DirPath TEXT,
-            FilePath TEXT,
-            Selected BOOLEAN
-        )`);
-        db.exec(`DELETE FROM "${PlaylistName}"`);
-        FirstRun = false;
-    }
-
-    const insert = db.prepare(`INSERT INTO "${PlaylistName}" (DirPath, FilePath, Selected) VALUES (?, ?, ?)`);
-    let containsInclude = true;
-    let containsExclude = false;
-    let errorOccurred = false;
-
-    for (const StartingPath of StartingPathArray) {
-        try {
-            const files = await fsPromises.readdir(StartingPath, { withFileTypes: true });
-            const dirPromises = [];
-
-            for (const file of files) {
-                const filePath = path.join(StartingPath, file.name);
-
-                if (file.isDirectory()) {
-                    // Recursive call
-                    dirPromises.push(CreateAddPlaylistTable(PlaylistName, [filePath], false));
-                } else {
-                    const ext = path.extname(filePath).toLowerCase();
-                    if (filetypes.includes(ext)) {
-                        if (includeArray.length !== 0) {
-                            containsInclude = includeArray.some(sub => StartingPath.toLowerCase().includes(sub.toLowerCase()));
-                        }
-                        if (excludeArray.length !== 0) {
-                            containsExclude = excludeArray.some(sub => StartingPath.toLowerCase().includes(sub.toLowerCase()));
-                        }
-                        writetoDB = containsInclude && !containsExclude;
-
-                        if (writetoDB) {
-                            insert.run(StartingPath, filePath, 0);
-                        }
-                    }
-                }
-            }
-
-            // Wait for recursive directories
-            await Promise.all(dirPromises);
-
-            // Yield to the event loop after processing this directory
-            await new Promise(resolve => setImmediate(resolve));
-
-        } catch (err) {
-            //writeRotateDeleteError(null, null, "error creating playlist during fs.promises.readdir " + StartingPath);            
-        }
-    }
-
-    if (FirstRunOriginal === true) {
-        const update = db.prepare(`UPDATE "${PlaylistName}" SET PlaylistPaths = ? WHERE id = ?`);
-        StartingPathArray.forEach((StartingPath, index) => {
-            update.run(StartingPath, index + 1);
-        });
-
-        // Delete the playlist if empty
-        const row = db.prepare(`SELECT COUNT(*) AS count FROM "${PlaylistName}"`).get();
-        if (row.count === 0) {
-            db.prepare(`DROP TABLE IF EXISTS "${PlaylistName}"`).run();
-            errorOccurred = true;
-        } else {
-            errorOccurred = false;
-        }
-    }
-
-    return errorOccurred;
-}
-*/
 
 function deletePlaylist(playlistName){
     var index = 0;
@@ -309,8 +266,7 @@ function readPlaylistPaths(){
 function readPlaylistTableNames() {  
     const result = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'playlist_%'`).all();
     // Extract table names into an array    
-    const tableNames = result.map(row => row.name.replace(/^playlist_/, ''));
-      
+    const tableNames = result.map(row => row.name.replace(/^playlist_/, ''));      
     return tableNames;
   }
 
@@ -357,6 +313,7 @@ function writeRotateDeleteError(Rotate, Delete, Error) {
 function readDataBase(){             
     GlobalSettings = readGlobalSettings();       
     g_playlists = readPlaylistTableNames();
+    let PlaylistTables = readPlaylistPaths();
     g_prefetchNUM = GlobalSettings.prefetchNUM;    
     g_selPLAYLIST = GlobalSettings.selPLAYLIST;
     g_preloadNUM = GlobalSettings.preloadNUM;
@@ -366,7 +323,14 @@ function readDataBase(){
     g_stopPauseTime=GlobalSettings.stopPauseTime;
     g_appPort=GlobalSettings.appPort;
     g_appStartDir=GlobalSettings.appStartDir;
-    g_hideImages = GlobalSettings.hideImages                                          
+    g_hideImages = GlobalSettings.hideImages
+
+    GlobalSettings.selplaylist = g_selPLAYLIST.split("_")[1];  // strip off playlist_ as well as any include/exclude strings _<include> _$<exclude>    
+    GlobalSettings.playlists = g_playlists;
+    GlobalSettings.PlaylistTables = PlaylistTables;
+
+
+    return GlobalSettings;
 }
 
 function writeDataBase(){    
@@ -388,6 +352,20 @@ function writeDataBase(){
     });                  
     readDataBase();
 }
+
+  async function appWriteDB(data){
+    // data arrives as a JSON object already                
+    if ('selPLAYLIST' in data) g_selPLAYLIST = data.selPLAYLIST;
+    if ('basedelay' in data) g_basedelay = data.basedelay;
+    if ('preloadNUM' in data) g_preloadNUM = data.preloadNUM;
+    if ('prefetchNUM' in data) g_prefetchNUM = data.prefetchNUM;
+    if ('StartTime' in data) g_startPauseTime = data.StartTime;
+    if ('StopTime' in data) g_stopPauseTime = data.StopTime;
+    if ('nightlyrebuild' in data) g_nightlyrebuild = data.nightlyrebuild;
+    if ('appStartDir' in data) g_appStartDir = data.appStartDir;
+    if ('hideImages' in data) g_hideImages = data.hideImages;
+    writeDataBase();            
+  }
 
 
 

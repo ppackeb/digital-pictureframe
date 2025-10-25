@@ -59,12 +59,10 @@
   <script src="../../common/customAlert.js"></script> 
   <script src="../../common/folderBrowser.js"></script>
   <script>
-
-    let g_playlists;  // list of available playlists in  file
-    let g_selPLAYLIST = ""; // currently selected playlist 
-    let new_playlistDisplayName="";  // name to show on UI  
+        
     let directorylist = []; // list of directories to save in the new playlist
     let PlaylistStatusFlag = ""; //create, edit, ""
+    let playlistNames = null;
 
     const params = new URLSearchParams(window.location.search); // load data passed from appPlaylists.html
     const selectedPlaylist = params.get("value"); // playlist passed from appPlaylists.html
@@ -72,27 +70,33 @@
 
     
     async function initialize() {    
-      returnData = await PrepMessage("app_readDB") //read all the playlists from the DB
+      let returnData = await PrepMessage("app_readDB") //read all the playlists from the DB
       const playlistFolderTable = document.getElementById("FolderTable");
-      g_playlists = returnData.playlists; // all playlist data in db, names and directories
-      g_selPLAYLIST=returnData.selplaylist; // currently selected playlist
+      playlistNames = returnData.playlists; // all playlist data in db, names and directories
+      //selplaylist=returnData.selplaylist; // currently selected playlist no _ data
+      let selPLAYLIST = returnData.selPLAYLIST; // playlist with playlist_ in it
+      let PlaylistTables = returnData.PlaylistTables;      
 
-      if (selectedPlaylist == "playlist_"+returnData.selplaylist){        
-        UpdateUI("defaultPlaylistSelected");
-      }
+
 
       if (selectedPlaylist != ""){ // no plyalist name passed, so create new playlist        
-        ParsePlaylistName(); 
-        UpdateUI("editPlaylist");        
-        let SelectedPlaylist = document.getElementById("selectedPlaylist").value        
-        let PlaylistDirs = g_playlists[selectedPlaylist];                
-        // Add new rows
+        ParsePlaylistName(selectedPlaylist);
+        if (selectedPlaylist == selPLAYLIST){        
+          UpdateUI("defaultPlaylistSelected");
+        } else{
+          UpdateUI("editPlaylist");        
+        }
+        
+        let PlaylistDirs = PlaylistTables[selectedPlaylist];
+
         PlaylistDirs.forEach(PlaylistDir => {
           let newRow = playlistFolderTable.insertRow();
-          newRow.innerHTML = `<td>${PlaylistDir}</td> <td><img src="../renderer/assets/images/del.png"></td>`;
-        });     
-        const addRow = playlistFolderTable.insertRow();
-        addRow.innerHTML = "<tr><td style='font-weight: bold;'> click to add folder </td><td></td></tr>";
+          newRow.innerHTML = `<td>${PlaylistDir.split("_")[0]}</td> <td><img src="../renderer/assets/images/del.png"></td>`;
+        });   
+
+        //const addRow = playlistFolderTable.insertRow();
+        newRow = playlistFolderTable.insertRow();
+        newRow.innerHTML = "<tr><td style='font-weight: bold;'> click to add folder </td><td></td></tr>";
         let scrollDiv = document.getElementById("folder-table-div"); // scroll to bottom of table
         scrollDiv.scrollTop = scrollDiv.scrollHeight;                
               
@@ -122,14 +126,14 @@
         break;
         case "createPlaylist":         
           document.getElementById("titleText").innerHTML = "<center>Create Playlist</center>";      
-          document.getElementById("deletePlaylist").hidden = true;
+          //document.getElementById("deletePlaylist").hidden = true;
           document.getElementById("savePlaylist").disabled = true;                             
           document.getElementById("selectedPlaylist").value="";
           document.getElementById("IncludeKeywords").value="";
           document.getElementById("ExcludeKeywords").value="";                           
         break;            
         case "defaultPlaylistSelected":        
-          document.getElementById("deletePlaylist").hidden = true;        
+          document.getElementById("deletePlaylist").disabled = true;        
         break;
       }
     }
@@ -230,8 +234,7 @@
       }
     }
 
-    function TestDuplicatePlaylistName(new_playlistSaveName){    
-      playlistNames = Object.keys(g_playlists); // just array of playlist names      
+    function TestDuplicatePlaylistName(new_playlistSaveName){          
       //test for duplicate plyalist name
       for (let i = 0; i < playlistNames.length; i++) {
         if (playlistNames[i].toLowerCase() === new_playlistSaveName) {         
@@ -269,9 +272,6 @@
         if (col == 1 && row != len) {
           clickedCell.parentElement.remove();             
           TestEnableSavebutton();
-          // if (len == 1) {
-              //document.getElementById("savePlaylist").disabled = true;
-            //}
         } else if (row == len) {
           openModal(function(selectedDir) {          
             const playlistDirTable = document.getElementById("FolderTable");
@@ -330,11 +330,11 @@
     }
 
 
-    function ParsePlaylistName(){    
-      const parts = selectedPlaylist.split("_");  //selectedPlaylist is passed in dynamically initizlied at beginning of script
+    function ParsePlaylistName(toParse){    
+      const parts = toParse.split("_");  //selectedPlaylist is passed in dynamically initizlied at beginning of script
       // First part is always the playlist name
-      const PlaylistName = parts[1];
-      document.getElementById("selectedPlaylist").value = PlaylistName;
+      toParse = parts[1];
+      document.getElementById("selectedPlaylist").value = toParse;
 
       const includeStrings = [];
       const excludeStrings = [];
@@ -354,7 +354,7 @@
       const ExcludeString = excludeStrings.join(",");
       document.getElementById("IncludeKeywords").value = IncludeString;
       document.getElementById("ExcludeKeywords").value = ExcludeString;       
-    }
+    } 
 
   </script>
   </body>

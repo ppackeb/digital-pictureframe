@@ -55,7 +55,7 @@
 
 
   async function ip_local(g_appPort){ 
-    addresses = await PrepMessage('app_getQRCode');        
+    addresses = await PrepMessage('readQRCode');        
     if (addresses.ipv6.length != 0) { // The ipv6 array is not empty     
       document.getElementById('labelipv6').style.wordBreak = "break-word";         
       document.getElementById("labelipv6").textContent = addresses.ipv6 + ':' + g_appPort;          

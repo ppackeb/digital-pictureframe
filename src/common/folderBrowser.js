@@ -154,7 +154,7 @@ tr:nth-child(even) {
   closeModalBtn.addEventListener("click", closeModalCancel);
   backModalBtn.addEventListener("click", backModalClicked);
 
-
+/*
   async function PrepMessage(payload){  
     messagePayload = null;    
     switch (payload){        
@@ -184,6 +184,7 @@ tr:nth-child(even) {
       // })  
     } 
   }
+*/
 
   // Help button calls showAlert from customAlerts.js
   document.getElementById("FolderTableInfo").onclick = function() {
@@ -198,7 +199,7 @@ tr:nth-child(even) {
     closeModalSubmit.disabled = false;
     modal.classList.remove("hidden");
     overlay.classList.remove("hidden");
-    let returnData = await PrepMessage('TopImageDir');
+    let returnData = await PrepMessage('ImageDir', "TopDir");    
     PopDirTable(returnData);
   }
 
@@ -223,7 +224,7 @@ function closeModalSubmitted() {
   async function backModalClicked() {
     if (SubLevelDir.length > 0) {
       SubDir = SubLevelDir.pop();
-      let result = await PrepMessage('SubImageDir');
+      let result = await PrepMessage('ImageDir', SubDir);      
       if (result !== 'bad dir') {
         PopDirTable(result);
         document.getElementById('btn-submit').disabled = false;
@@ -233,7 +234,7 @@ function closeModalSubmitted() {
         document.getElementById('btn-submit').disabled = true;
       }
     } else {
-      let result = await PrepMessage('TopImageDir');
+      let result = await PrepMessage('ImageDir', "TopDir"); 
       PopDirTable(result);
     }
   }
@@ -241,7 +242,7 @@ function closeModalSubmitted() {
 
   async function handleDirInput() {
     SubDir = dirInput.value;
-    let result = await PrepMessage('SubImageDir');
+    let result = await PrepMessage('ImageDir', SubDir);
     if (result !== 'bad dir') {
       PopDirTable(result);
       document.getElementById('btn-submit').disabled = false;
@@ -283,7 +284,7 @@ function closeModalSubmitted() {
       let row = e.target.parentElement.rowIndex;
       SubDir = SystemDirs[row + 1];
       SubLevelDir.push(SystemDirs[0]);
-      let returnData = await PrepMessage('SubImageDir');
+      let returnData = await PrepMessage('ImageDir', SubDir);
       PopDirTable(returnData);
     }
   });

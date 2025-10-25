@@ -39,12 +39,12 @@
 // is what is looked at for selected playlist.  Should just be able to update this variable, close display.html and then call startshow
 
 function ClearNotifications(){
-  PrepMessage('DeleteMarkedFilesList');
+  PrepMessage('clearNotifications');
   document.getElementById('home').click();
 }
 
 async function Initialize(){
-  returnData = await PrepMessage('readMarkedFileList')     
+  returnData = await PrepMessage('readNotifications')     
   const markedFilesTable = document.getElementById('markedFiles');
   //let rowentry = '<tr><td>There are no Marked Items or Warnings</td></tr>';
   //markedFilesTable.insertAdjacentHTML('beforeend', rowentry);    

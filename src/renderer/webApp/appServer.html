@@ -35,8 +35,8 @@ ipcRenderer.on("appSendRequest", async function (event, data) {
       // returns standard response with null data 
     break;
 
-    case 'AppGetCurrentDisplayImageData':
-      responseData = await ipcRenderer.invoke('AppGetCurrentDisplayImageData', messagePayload);
+    case 'app_readMetaData':
+      responseData = await ipcRenderer.invoke('app_readMetaData', messagePayload);
       response = {
         command: command,
         data: responseData
@@ -202,7 +202,7 @@ ipcRenderer.on("appSendRequest", async function (event, data) {
           '-c', 'copy',
           tempFilePath
         ];
-        const ffmpegPath = path.join(__dirname, '..', 'assets', 'ffmpeg', 'ffmpeg.exe');
+             const ffmpegPath = path.join(__dirname, '..', 'renderer', 'assets', 'ffmpeg', 'ffmpeg.exe');
         const ffmpegProcess = execFile(ffmpegPath, args, (error, stdout, stderr) => {
           if (error) {            
             cleanupTempFile(tempFilePath); // Ensure temp file is cleaned up   
@@ -309,19 +309,7 @@ ipcRenderer.on("appSendRequest", async function (event, data) {
   }
 
 
-  async function appWriteDB(data){
-    // data arrives as a JSON object already                
-    if ('selPLAYLIST' in data) g_selPLAYLIST = data.selPLAYLIST;
-    if ('basedelay' in data) g_basedelay = data.basedelay;
-    if ('preloadNUM' in data) g_preloadNUM = data.preloadNUM;
-    if ('prefetchNUM' in data) g_prefetchNUM = data.prefetchNUM;
-    if ('StartTime' in data) g_startPauseTime = data.StartTime;
-    if ('StopTime' in data) g_stopPauseTime = data.StopTime;
-    if ('nightlyrebuild' in data) g_nightlyrebuild = data.nightlyrebuild;
-    if ('appStartDir' in data) g_appStartDir = data.appStartDir;
-    writeDataBase();        
-    ipcRenderer.send('resetdisplaywindow', '');    
-  }
+
    
   async function getStartDir(SelectedDir) { 
     var results = [];   
