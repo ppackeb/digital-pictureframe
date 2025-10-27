@@ -285,8 +285,7 @@
       },15000); 
     });
 
-    
-    //ipcRenderer.on('appInfo', (event, arg) => {  // pass data from appServer to control the current slideshow            
+        
    ipcRenderer.on('ipc_display', async (event, arg) => {
       let AppData = arg.data;
       let AppCommand = arg.command;   
@@ -354,8 +353,7 @@
             ZoomImage(AppData);
          break;
          default:         
-      }
-      //ipcRenderer.send(`appInfo-reply-${arg.request_id}`, response);
+      }      
       ipcRenderer.send(`ipc_display-reply-${request_id}`, response);
     })
 

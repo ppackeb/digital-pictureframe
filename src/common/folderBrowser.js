@@ -154,37 +154,6 @@ tr:nth-child(even) {
   closeModalBtn.addEventListener("click", closeModalCancel);
   backModalBtn.addEventListener("click", backModalClicked);
 
-/*
-  async function PrepMessage(payload){  
-    messagePayload = null;    
-    switch (payload){        
-      case 'TopImageDir':
-        messagePayload = {command:"ImageDir", data:"TopDir" };
-      break;
-      case 'SubImageDir':      
-        messagePayload = {command: "ImageDir",data: SubDir};
-      break;
-    }  
-    try {
-      // Await the response from the new, async makeRequest function.
-      returnData = await makeRequest('/app_sendrequest', messagePayload);
-      command = returnData.command;
-      data = returnData.data;
-      // Handle the response based on the command.
-      switch(messagePayload.command){        
-        case 'ImageDir':
-          return data.data;
-        break;        
-        
-        default:          
-        break;
-      }      
-    } catch (error) {        
-      //ShowAlert('Error in html POST. '+ error, false).then((result) => {                  
-      // })  
-    } 
-  }
-*/
 
   // Help button calls showAlert from customAlerts.js
   document.getElementById("FolderTableInfo").onclick = function() {

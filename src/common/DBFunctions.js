@@ -25,18 +25,18 @@ function initDBFunctions({ dbInstance, electron }) {
 
 // Export functions you need externally
 module.exports = {  
-    initDBFunctions, 
-    readDataBase,
-    readGlobalSettings,  // requires db.
-    readPlaylistTableNames, // requires db.
-    readPlaylistPaths, // requires db.
-    writeDataBase,     // requires db. 
-    CreateAddPlaylistTable,
-    appWriteDB,
-    writeRotateDeleteError,
-    readRotateDeleteError,
-    ClearRotateDelete,
-    rebuildall
+  initDBFunctions, 
+  readDataBase,
+  readGlobalSettings,  // requires db.
+  readPlaylistTableNames, // requires db.
+  readPlaylistPaths, // requires db.
+  writeDataBase,     // requires db. 
+  CreateAddPlaylistTable,
+  appWriteDB,
+  writeRotateDeleteError,
+  readRotateDeleteError,
+  ClearRotateDelete,
+  rebuildall
 }
 
 
@@ -68,29 +68,30 @@ async function rebuildall() {
     isRebuilding = true;
         
     runningContext = 'renderer';  // default to this as its teh most common
-
     if (process && process.type === 'browser') {
         // In main process (loaded by main.js)
         runningContext = 'main';
     }
 
-    
-
-
     let errorOccured = false;
     if (runningContext == "renderer"){
-        ipcRenderer.send('popup', 'Rebuilding Index');
+        //ipcRenderer.send('popup', 'Rebuilding Index');      
+        ipcRenderer.invoke('ipcMain_invoke', 'OpenPopup');    
     }else{
-        electronRefs.ipcMain.emit('popup', null, 'Rebuilding Index');
+        electronRefs.ipcMain.emit('popup','main.js','Rebuilding Index');          
     }
     var PlaylistTables = readPlaylistPaths();
     for (const [TableName, dirPaths] of Object.entries(PlaylistTables)) {    
         errorOccured = await CreateAddPlaylistTable(TableName, dirPaths, true)     
     }  
     if (runningContext == "renderer"){  
-        ipcRenderer.send('close_popup', '');
+        ipcRenderer.invoke('ipcMain_invoke', 'ClosePopup');    
+        //ipcRenderer.send('close_popup', '');
     }else{
-        electronRefs.ipcMain.emit('close_popup', '');
+        const popup = electronRefs.getPopup();
+        if (popup){
+            popup.close(); // fires Popup.on('closed', function ()... which sets ImageWindow to null          
+        }        
     }
     
     isRebuilding = false;    

@@ -335,19 +335,9 @@
 
   // start slideeshow
   function StartShow(){   
-    ipcRenderer.send('resetdisplaywindow',' ');
+    PrepMessage('resetdisplaywindow');    
   }
   
-  // catch when playlist.html window is closed
-  ipcRenderer.on('action-update', (event, arg) => {
-    document.getElementById('playlist_name').innerHTML = '';
-    writeUI(); // update all UI info
-  });
-
-  // catch when display.html window is closed
-  ipcRenderer.on('resetImageWindow', (event, arg) => {
-    writeUI();// put all data UI        
-  });
 
   // create a timer to check if it is midnight and rebuild all playlists if needed
 function rebuildIndexTimer() {
@@ -365,25 +355,49 @@ function rebuildIndexTimer() {
   }, 180000); // check every hour (1 hour = 3600000 ms) (1/2 hr = 180000)for debugging use 60000 (1 min)
 }
 
-
-  /*
-  // create a timer to check if it is midnight and rebuild all playlists if needed
-  function rebuildIndexTimer(){  
-    var RebulidTimer = new Timer(function() {
-      var checkTime = new Date();
-      var currentTime = checkTime.getHours();     
-
-    if (currentTime == 0  && ismidnight == false && g_nightlyrebuild){
-
-        rebuildall();  // function is located in DBFunctions.js
-        ismidnight = true;
-      }else{
-        ismidnight = false;
-      }
-    },  3600000); // time in ms to determine how often to check if midnight 1 sec = 1000, 1 min = 60,000, 1hour = 3,600,000, 1.5hours = 5,400,000   
+  async function PrepMessage(command, payload=null){    
+    let messagePayload = {command: command, data: payload};   
+    switch (command){
+      case 'resetdisplaywindow':        
+      case 'get-local-ips':
+      case 'playlist_dir_dialog':
+      case 'OpenPopup':
+      case 'ClosePopup':
+      case 'playlist_updated':
+        // no additional data needed
+      break;      
+    }
+    try{
+      response = await ipcRenderer.invoke('ipcMain_invoke', messagePayload);
+      return response; 
+    }catch (err){      
+      writeRotateDeleteError(null, null, 'Error in PrepMessage for command: '+ command + ' ' + err.message);
+      // do nothing of rnow
+    }
   }
-    */
   
+  ipcRenderer.on('ipc_index', async (event , arg) => {    
+    let AppData = arg.data;
+    let AppCommand = arg.command;   
+    let request_id = arg.request_id;
+    // default response
+    let response = {
+      command: AppCommand,
+      data: null
+    }; 
+    
+    switch (AppCommand){
+      case 'action-update': // catch when playlist.html window is closed
+        document.getElementById('playlist_name').innerHTML = '';
+        writeUI(); // update all UI info
+      break;     
+      case 'resetImageWindow': // catch when display.html window is closed
+        writeUI();// put all data UI
+      break;
+    }
+    ipcRenderer.send(`ipc_index-reply-${request_id}`, response);
+  });
+
   /*
   //
   //
@@ -436,10 +450,11 @@ function rebuildIndexTimer() {
 }
 
     
-  document.getElementById("AppStartDirectory").addEventListener('click', function(){     
+  document.getElementById("AppStartDirectory").addEventListener('click', async function(){     
     // custom event as read only UI elements dont fire events
     document.getElementById('AppStartDirectory').dispatchEvent(new Event('valuechanged')); 
-    var result = ipcRenderer.sendSync('playlist_dir_dialog', ' ');    
+    let returnvalue = await PrepMessage('playlist_dir_dialog');
+    let result = returnvalue.data;    
     if (result == ""){
       document.getElementById('AppStartDirectory').value = g_appStartDir; 
     }else{
@@ -500,8 +515,10 @@ function rebuildIndexTimer() {
     }
   });
 
-  function ip_local(){    
-    ipcRenderer.invoke('get-local-ips').then(addresses => { //const addresses = { ipv4: [], ipv6: [] };      
+
+  async function ip_local(){    
+    response = await PrepMessage("get-local-ips");
+    addresses = response.data;    
       if (addresses.ipv6.length != 0) { // The ipv6 array is not empty              
         document.getElementById("labelipv6").textContent = addresses.ipv6;        
         let finalIP = "http://[" + addresses.ipv6 + "]:" + document.getElementById("appPort").value;              
@@ -522,7 +539,7 @@ function rebuildIndexTimer() {
         document.getElementById('labelipv4').style.wordBreak = "break-word";
         document.getElementById('labelipv4').textContent = 'IPv4 is not currently enabled in the network settings of the computer';        
       }
-    });
+    //});
   }
 
   /*
@@ -632,23 +649,22 @@ function rebuildIndexTimer() {
       if (cell) {
         dirlist.push(cell.textContent.trim());
       }
-    }       
-    //ipcRenderer.send('popup', {caller:'index.html', title:'Building Index'});        
-    ipcRenderer.send('popup','Building Index');        
+    }                        
+    PrepMessage('OpenPopup', 'Building Playlist Index');
     try{
       let errorOccurred = await CreateAddPlaylistTable(new_name,dirlist, true);     
       if (errorOccurred){ // an error occured
         //working here
         UpdateUI('playlistCreationError')
-      }else{
-        ipcRenderer.send('playlist_updated', '');  
+      }else{        
+        PrepMessage('playlist_updated');
         buildPlaylistTab();
         UpdateUI('savePlaylist');
       }
-      ipcRenderer.send('close_popup', '');  
+      PrepMessage('ClosePopup');      
     }catch (err){
       //writeRotateDeleteError(null, null, 'Error creating playlist table: '+ new_name + ' ' + err.message);      
-      ipcRenderer.send('close_popup', '');  
+      PrepMessage('ClosePopup');      
     }                           
   }
 
@@ -809,7 +825,7 @@ function rebuildIndexTimer() {
     return false;
   }
 
-  document.getElementById('FolderTable').addEventListener('click', function (e) {                    
+  document.getElementById('FolderTable').addEventListener('click', async function (e) {                    
     if ((e.target.tagName === 'TD' || e.target.tagName === 'IMG') && e.target.tagName !== 'TH'){      
       const clickedCell = e.target.closest('TD');  // if the image is clicked, get the parent TD      
       const col = clickedCell.cellIndex;
@@ -819,8 +835,9 @@ function rebuildIndexTimer() {
         clickedCell.parentElement.remove();         
         document.getElementById('PlaylistNameInfo').src = './assets/images/app help.png';   
         document.getElementById('selectedPlaylist').style.backgroundColor = '';      
-      } else if (row == len){        
-        var result = ipcRenderer.sendSync('playlist_dir_dialog', ' ');
+      } else if (row == len){    
+        let returnvalue = await PrepMessage('playlist_dir_dialog');
+        let result = returnvalue.data;            
         if (result.length !=0){          
           const newRow = document.createElement('tr');
           newRow.innerHTML = `<td style="padding: 2px 5px;">${result}</td><td style="padding: 2px 5px;"><img src='./assets/images/del.png' style="width: 30px; height: auto;" alt='delete'></td>`;

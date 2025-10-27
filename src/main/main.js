@@ -13,15 +13,12 @@ const { execFile } = require('child_process');
 const { ExifTool } = require('exiftool-vendored');  //the curly brackets { ExifTool } destructures the ExifTool property from the module's exports, so you can use it directly in your code
 const exiftool = new ExifTool();
 
-
-
 const devtools = true; // enables dev tool windows
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow=null;  //index.html
 let ImageWindow = null;  //dipslay.html
-let appserverWindow = null; //appServer.html
 let PlaylistConfigWindow = null; //playlist.html
 let Popup = null; //popup.html
 let res_app_sendrequest = null;  //hold req for call from appServer.html for a return value
@@ -57,7 +54,7 @@ if (app.isPackaged) {
 const DB = require(path.join(__dirname, '..', 'common', 'DBFunctions.js'));  // load DBFunctions.js
 DB.initDBFunctions({
   dbInstance: db,
-  electron: { app, BrowserWindow, screen, ipcMain, dialog, webContents }
+  electron: { app, BrowserWindow, screen, ipcMain, dialog, webContents,  getPopup: () => Popup }
 });
 
 
@@ -107,11 +104,6 @@ router.get('/:page?', (req, res, next) => {
 // This prevents multiple concurrent requests from overwriting each other.
 const activeRequests = new Map();
 
-// --- Existing Express setup code...
-// ... (your existing Express setup)
-// AppServer.use(require('body-parser').json());
-// ...
-// ---
 let ipc_index =[];
 let ipc_main = ["app_readDB","app_writeDB","refresh","ImageDir","DeletePlaylist","NewPlaylist","WriteMetaData","readNotifications","clearNotifications","rebuildDatabase","readQRCode"];
 let ipc_display = ["information","readMetaData","information","direction","filectrl","volume","GetMutePlay","ZoomImage"];
@@ -134,9 +126,6 @@ router.post('/app_sendrequest', async (req, res) => {
       return res.status(400).json({ error: 'Missing request_id' });
   }
 
-  // Now, send the payload to the appserverWindow, including the request_id.
-  // The appserverWindow will use this ID to send the response back.
-  
   const foundIn = Object.keys(arrayMap).find(key => arrayMap[key].includes(req.body.command));
   switch(foundIn){
     case "ipc_main":
@@ -144,12 +133,6 @@ router.post('/app_sendrequest', async (req, res) => {
     break;
     case "ipc_display":      
       ipc_displayPOST(req.body);         
-    break;
-    default:
-      appserverWindow.webContents.send('appSendRequest', {  
-        ...payloadWithoutId,
-        request_id: request_id
-      });
     break;
   }
 });
@@ -184,6 +167,30 @@ function ipc_displayPOST(payload) {
   });
 }
 
+function ipc_indexPOST(payload) {  
+  win = mainWindow;
+  channel = "ipc_index";  
+  let request_id = Date.now().toString() + Math.random().toString(36).substring(2);
+  let response = {command: payload.command, data: null}; // Default response structure    
+
+  if (!win || win.isDestroyed() || !win.webContents){
+    return response;
+  }
+
+  payload.request_id = request_id; // add request_id to response object
+  
+  return new Promise((resolve, reject) => {
+    // Listen for one reply only (auto-cleanup)
+    ipcMain.once(`${channel}-reply-${request_id}`, (event, response) => {        
+      resolve(response);// resolve the response
+    });
+
+    // Send the message with requestId and data
+    win.webContents.send(channel, payload);
+
+  });
+}
+
 async function ipc_mainPOST (payload){
     // 1. Destructure the request_id from the incoming data object.
   const { request_id, ...payloadWithoutId } = payload;
@@ -201,10 +208,10 @@ async function ipc_mainPOST (payload){
     break;
     case "app_writeDB":
       DB.appWriteDB(requestData);
-      ipcMain.emit('resetdisplaywindow', null);
+      resetDisplay();
     break;
     case "refresh":
-      ipcMain.emit('resetdisplaywindow', null);
+      resetDisplay();
     break;
     case "ImageDir":
       response = await getStartDir(requestData);      
@@ -324,15 +331,19 @@ async function NewPlaylist(data){
   playlistdirs = data.playlistDir;
   new_name = data.playlistname;
 
-  ipcMain.emit('popup',null,'Building Index'); 
+  ipcMain.emit('popup','main.js','Building Index'); 
   try{
     PlaylistCreated = await DB.CreateAddPlaylistTable(new_name,playlistdirs, true);                                         
   }catch (err){
     //writeRotateDeleteError(null, null, 'Error creating playlist table: '+ new_name + ' ' + err.message);   
     PlaylistCreated = false;   
   }    
-  ipcMain.emit('playlist_updated', '');         
-  ipcMain.emit('close_popup', '');    
+  let payload = {command: 'action-update', data: null};
+  ipc_indexPOST(payload);
+
+  if (Popup){
+    Popup.close(); // fires Popup.on('closed', function ()... which sets ImageWindow to null          
+  }
   return PlaylistCreated;
 }
 
@@ -344,10 +355,13 @@ function DeletePlaylist(data){
   playlistHolder = GlobalSettings.selPLAYLIST;
   g_selPLAYLIST = 'playlist_'+ tablenamearray[0];    
   DB.writeDataBase();
-  ipcMain.emit('playlist_updated', null);   
+  
+  //ipcMain.emit('playlist_updated', null);  
+  let payload = {command: 'action-update', data: null};
+  ipc_indexPOST(payload); 
   // if the running playlist is the deleted playlist, reset display with next playlist in the database table    
   if (data == playlistHolder){      
-    ipcMain.emit('resetdisplaywindow', null); 
+    ressetdisplaywindow(); 
   }
 }
 
@@ -386,8 +400,6 @@ async function getStartDir(SelectedDir) {
 }
 
 
-// Responds to the client with the data from the appserverWindow.
-// This IPC message is triggered from the appServer.html renderer process.
 
 ipcMain.on('app_sendrequest_response', (event, arg) => { // event is not needed once all is re-written
     // We expect the argument to be an object with a request_id and the response data.
@@ -408,86 +420,9 @@ ipcMain.on('app_sendrequest_response', (event, arg) => { // event is not needed 
 });
 
 
-/*-----------------------------------*/
-// IPC communication between main.js and html files
-
-
-//.invoke/.handle is used for request-response pattern
-//.send/.on is used for fire-and-forget or one-way messages
-
-// passing from appserver.html to main.js in order to get ImageWindow handle to know if imagewindow is open
-ipcMain.on('pass_appInfo', (event, arg) => {    
-  if (ImageWindow){    
-    ImageWindow.webContents.send('appInfo', arg);             
-  }
-})
-
-
-ipcMain.handle('GetMutePlay', async (event, arg) => {
-  if (!ImageWindow) return null;  
-  ImageWindow.webContents.send('GetMutePlay', null);// Send request to ImageWindow
-  // Wait for ImageWindow to respond
-  const response = await new Promise((resolve) => {
-    ipcMain.once('GetMutePlayResponse', (event, response) => {
-      resolve(response);
-    });
-  });
-  return response; // This goes back to ipcRenderer.invoke
-})
-
-
-ipcMain.handle('app_readMetaData', async (event, arg) => {  
-  if (!ImageWindow) return null; 
-  
-    ImageWindow.webContents.send('app_readMetaData', arg);
-    const response = await new Promise((resolve) => {
-    ipcMain.once('app_readMetaData_response', (event, response) => {      
-      resolve(response);
-    });
-  });
-  return response; // This goes back to ipcRenderer.invoke
-})
-
-// zoom info for display.html
-ipcMain.on('appZoomLocation', (event, arg) => {
-  if (ImageWindow){  
-    ImageWindow.webContents.send('ZoomLocation', arg);  
-  };
-})
-
-ipcMain.on('dbrebuildfailed', (event,arg)=>{
-  if (ImageWindow){
-    ImageWindow.webContents.send('dbrebuildfailure', arg);  
-  };
-})
-
-ipcMain.on('playlist_updated', (event, arg) => {
-  // Request to update the label in the renderer process of the second window
-  mainWindow.webContents.send('action-update', arg);
-})
-
-ipcMain.on('playlist_dir_dialog', async (event, arg) => {
-  var myresults = await dialog.showOpenDialog({properties: ['openFile', 'openDirectory']});   
-  event.returnValue =  myresults.filePaths;  
-})
-
-ipcMain.on('hidden_files_dialog', async (event, arg) => {
-  //var myresults = await dialog.showOpenDialog({properties: ['openFile', 'openDirectory']});   
-  var myresults = await dialog.showOpenDialog({
-    title: 'Select Image Files',
-    buttonLabel: 'Select',
-    properties: ['openFile', 'multiSelections'],
-    filters: [
-      { name: 'Images', extensions: ['jpg', 'jpeg'] }
-    ]    
-  });
-  event.returnValue = myresults.filePaths;
-})
-
-var resetDisplayWindow = false; // used to determine if display window should be reset
-// Handling 'resetdisplaywindow' event
-ipcMain.on('resetdisplaywindow', async (event, arg) => {
-  mainWindow.webContents.send('resetImageWindow', null);   //update UI in index.html and write to DB 
+var resetDisplayWindow = false; // used to determine if display window should be reset Handling 'resetdisplaywindow' event
+async function resetDisplay(){  
+  //mainWindow.webContents.send('resetImageWindow', null);   //update UI in index.html and write to DB 
   if (ImageWindow) {
     resetDisplayWindow = true; // set flag to true so we know to reset display window
     await ImageWindow.close();    
@@ -495,7 +430,7 @@ ipcMain.on('resetdisplaywindow', async (event, arg) => {
   }else{    
     ipcMain.emit('startshow', '');
   }
-});
+};
 
 
 ipcMain.on('close_image_window', async (event, arg) => {
@@ -503,21 +438,6 @@ ipcMain.on('close_image_window', async (event, arg) => {
     await ImageWindow.close();  // fires ImageWindow.on('closed', function ()... which sets ImageWindow to null
   }
 })
-
-
-
-ipcMain.on('close_popup', (event, arg) => {
-  if (Popup){
-    Popup.close(); // fires Popup.on('closed', function ()... which sets ImageWindow to null          
-  }
-})
-
-ipcMain.on('close_playlist_window', (event, arg) => {
-  if (PlaylistConfigWindow){
-    PlaylistConfigWindow.close(); // fires PlaylistConfigWindow.on('closed', function ()... which sets ImageWindow to null
-  }
-})
-
 
 
 // determine uptime for picture frame application and return  
@@ -554,9 +474,37 @@ function getPicFrameUptime(){
   return picframeuptime;
 }
 
-// for ipcRenderer.invoke()
-ipcMain.handle('get-local-ips', () => {
-  return getLocalIPs(); // returns the IPs to the renderer
+
+ipcMain.handle('ipcMain_invoke', async (event, payload) => {
+  command = payload.command;
+  payloadData = payload.data;
+  response = {command: command, data: null};
+  switch (command){
+    case 'get-local-ips':
+      response.data = getLocalIPs(); // returns the IPs to the renderer
+    break;
+    case 'resetdisplaywindow':
+      await resetDisplay();
+    break;
+    case 'playlist_dir_dialog':
+      returnvalue = await dialog.showOpenDialog({properties: ['openFile', 'openDirectory']});   
+      response.data = returnvalue.filePaths  
+    break;
+    case 'OpenPopup':
+      ipcMain.emit('popup', 'index.html', payloadData);
+    break;
+    case 'ClosePopup':
+      if (Popup){
+        Popup.close(); // fires Popup.on('closed', function ()... which sets ImageWindow to null          
+      }
+    break;
+    case 'playlist_updated':    
+      let payload = {command: 'action-update', data: null}
+      ipc_indexPOST(payload);      
+    break;
+  }
+  return response;
+
 });
 
 
@@ -637,37 +585,11 @@ function createWindow () {
     if (Popup) {
       Popup.close();
     }
-    ipcMain.emit('close_image_window');
-    appserverWindow.close(); // close appserver window when main window is closed
+    ipcMain.emit('close_image_window');    
     mainWindow = null;
   });
 }
 
-// called by main.js when the index.html window is created in createWindow()
-function appStartServer(){
-  if (devtools){    
-    appserverWindow = new BrowserWindow({center: true, width: 1000, height: 800, maximizable: true, resizable: true, icon: './res/icon.png', webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false // Ensure Node.js integration       
-    }});
-    appserverWindow.webContents.openDevTools();              
-  }else{          
-    appserverWindow = new BrowserWindow({center: true, width: 10, height: 10, hide: true, maximizable: false, resizable: false, icon: './res/icon.png', webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false // Ensure Node.js integration       
-    }});
-
-    appserverWindow.hide();
-  }
-  // create appserver window and then hide
-  //var homedir = __dirname + "\\src\\renderer\\webApp\\appServer.html";
-  var homedir = path.join(path.dirname(__dirname), "renderer", "webApp", "appServer.html");
-  appserverWindow.loadFile(homedir);  
-
-  appserverWindow.on('closed', function () {
-    appserverWindow = null;
-  });
-}
 
 ipcMain.on('startshow', async (event, arg) => {  
   if (devtools){
@@ -688,8 +610,8 @@ ipcMain.on('startshow', async (event, arg) => {
 
  
   ImageWindow.webContents.on('did-stop-loading', () => {     
-    ImageWindow.webContents.send('pageloadcheck', 'page loaded');     
-    ipcMain.emit('pass_appInfo', null, { command: 'volume', data: 0 }); // set volume to 0 when display.html is loaded
+    ImageWindow.webContents.send('pageloadcheck', 'page loaded');         
+    ipc_displayPOST({ command: 'volume', data: 0}); //set volume to 0 on start
   });
     if (!devtools){
       mainWindow.minimize(); // minimize main window when imagewindow is opened    
@@ -708,9 +630,8 @@ ipcMain.on('startshow', async (event, arg) => {
       ImageWindow.webContents.send('displayWatchdogRequest', null); // send watchdog request to display.html             
     
       // timeout to wait for response from display.html.  If no response in 10 seconds display.html is hung so restart
-      WatchdogResponseTimeout = setTimeout(() => {         
-        //writeRotateDeleteError(null, null, 'No response from display.html resetting ' + new Date()); // write reset to database
-        ipcMain.emit('resetdisplaywindow', ''); // display.html is hung so reset it
+      WatchdogResponseTimeout = setTimeout(() => {                 
+        resetDisplay(); // display.html is hung so reset it
       }, 120000); //give it 2 min to respond.   120000 = 2 minutes      
 
     } else {            
@@ -739,36 +660,12 @@ ipcMain.on('startshow', async (event, arg) => {
   });
 })
 
-// this is also in DBfuntions.js can I just load that?
-// pass in null for Rotate, Delete, Reset not used for the specific writing
-function writeRotateDeleteError(Rotate, Delete, Error){
-  const query = `INSERT INTO rotate_delete (rotate, remove, error) VALUES (?, ?, ?)`;
-  const stmt = db.prepare(query);
-  //const stmt = db.prepare(query);
-  stmt.run(Rotate, Delete, Error);
-}
-
 
 ipcMain.on('popup', async (event, arg) => {  
 
-  let popupCaller = null;
-  if (event == null){
-    filename = "main.js";
-  }else{
-    const fullUrl = event.sender.getURL();// Full file URL
-    const filePath = new URL(fullUrl).pathname;// Convert file:// URL to a proper filesystem path
-    // Handle Windows leading slash issue
-    const normalizedPath = process.platform === 'win32' && filePath.startsWith('/')
-      ? filePath.slice(1)
-      : filePath;
+  let popupCaller = mainWindow; 
 
-    // Just the filename (e.g. index.html)
-    const filename = path.basename(normalizedPath);
-  }
-  
-  
-
-  switch (filename){
+  switch (event){
     case 'index.html':
       popupCaller = mainWindow;
     break;
@@ -779,8 +676,7 @@ ipcMain.on('popup', async (event, arg) => {
       }else{
         popupCaller = mainWindow;
       }
-      
-    break;
+    break; 
   }  
 
     if (devtools){
@@ -813,32 +709,6 @@ ipcMain.on('popup', async (event, arg) => {
 })
 
 
-ipcMain.on('playlist_config', (event, arg) => {
-  if (devtools){
-    PlaylistConfigWindow = new BrowserWindow({width: 1000, height: 800, webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false // Ensure Node.js integration       
-    }});
-    PlaylistConfigWindow.webContents.openDevTools();
-  }else{
-    PlaylistConfigWindow = new BrowserWindow({parent: mainWindow, modal: true, width: 500, height: 510, frame: false, resizable: false , webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false // Ensure Node.js integration       
-    }});    
-  }
-  var homedir = __dirname + "\\playlist.html";
-  PlaylistConfigWindow.loadFile(homedir);
-
-  PlaylistConfigWindow.webContents.on('did-stop-loading', () => {
-    PlaylistConfigWindow.webContents.send('pageloadcheck', 'page loaded');
-  });
-
-  PlaylistConfigWindow.on('closed', function () {
-    PlaylistConfigWindow = null;
-  });
-})
-
-
 /*-----------------------------------*/
 //App specific settings and configuration
 
@@ -853,17 +723,12 @@ app.on('browser-window-created',function(e,mainWindow) {
 
 //reset mainwindow (index.html) if the TV turns off and on and the window sizes full screen
 app.on('ready', () => {
-  createWindow();  // creates the main window index.html
-  appStartServer(); // creates the appserver window appServer.html
+  createWindow();  // creates the main window index.html  
 
   screen.on('display-metrics-changed', (event, display, changedMetrics) => {
     if (app.isPackaged){ // only run if app is packaged, not in dev environment
       if (mainWindow) {  
         mainWindow.setSize(500, 425);      //({center: true, width: 1000, height: 600, maximizable: true, resizable: true, icon: './res/icon.png', webPreferences: {
-      }
-      if (appserverWindow){
-        appserverWindow.setSize(10,10);
-        appserverWindow.hide();
       }    
     }
   });
