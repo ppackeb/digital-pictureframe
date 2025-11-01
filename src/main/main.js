@@ -241,6 +241,71 @@ async function ipc_mainPOST (payload){
   ipcMain.emit ('app_sendrequest_response', null, {request_id: request_id, responseData: response});
 }
 
+ipcMain.handle('ipcMain_invoke', async (event, payload) => {
+  command = payload.command;
+  payloadData = payload.data;
+  response = {command: command, data: null};
+  switch (command){
+    case 'get-local-ips':
+      response.data = getLocalIPs(); // returns the IPs to the renderer
+    break;
+    case 'resetdisplaywindow':
+      await resetDisplay();
+    break;
+    case 'playlist_dir_dialog':
+      returnvalue = await dialog.showOpenDialog({properties: ['openFile', 'openDirectory']});   
+      response.data = returnvalue.filePaths  
+    break;
+    case 'OpenPopup':
+      ipcMain.emit('popup', 'index.html', payloadData);
+    break;
+    case 'ClosePopup':
+      if (Popup){
+        Popup.close(); // fires Popup.on('closed', function ()... which sets ImageWindow to null          
+      }
+    break;
+    case 'playlist_updated':    
+      let payload = {command: 'action-update', data: null}
+      ipc_indexPOST(payload);      
+    break;
+    case 'close_image_window':
+      if (ImageWindow)  {
+        await ImageWindow.close();  // fires ImageWindow.on('closed', function ()... which sets ImageWindow to null
+      }
+    break;
+    case 'GetPicFrameUptime':
+      // determine uptime for picture frame application and return        
+      response.data = await getPicFrameUptime();
+      /*
+      if (ImageWindow){
+        ImageWindow.webContents.send('PicFrameUptime', picframeuptime);
+      } 
+        */     
+    break;
+  }
+  return response;
+
+});
+
+
+
+ipcMain.on('app_sendrequest_response', (event, arg) => { // event is not needed once all is re-written
+    // We expect the argument to be an object with a request_id and the response data.
+    const { request_id, responseData } = arg;
+    
+    // Retrieve the correct response object using the request_id.
+    const res = activeRequests.get(request_id);
+
+    if (res) {
+        // Send the response back to the original client.
+        res.json(responseData);
+        // Clean up: remove the response object from the map to free up memory.
+        activeRequests.delete(request_id);
+    } else {
+        // Log an error if the request ID isn't found (shouldn't happen with this setup).
+    }
+});
+
 async function WriteMetaData(data){
   existingHiddenFlag = "";
   if (data.dbEXIFHiddenImages == true){      
@@ -259,7 +324,7 @@ async function WriteMetaData(data){
       await addCommentToMP4(data.ImagePath, updatedComment);              
     }
   } catch (error){
-    writeRotateDeleteError(null, null, 'Error writing EXIF data:', error);      
+    DB.writeRotateDeleteError(null, null, 'Error writing EXIF data:', error);      
   }
 }
 
@@ -277,7 +342,7 @@ async function addCommentToMP4(filePath, commentString) {
       const ffmpegProcess = execFile(ffmpegPath, args, (error, stdout, stderr) => {
         if (error) {            
           cleanupTempFile(tempFilePath); // Ensure temp file is cleaned up   
-          writeRotateDeleteError(null, null, `Failed to add comment to MP4: ${stderr}`);         
+          DB.writeRotateDeleteError(null, null, `Failed to add comment to MP4: ${stderr}`);         
           reject();
           return;
         }
@@ -286,7 +351,7 @@ async function addCommentToMP4(filePath, commentString) {
       // Wait for the ffmpeg process to fully close
     ffmpegProcess.on('close', (code) => {
       if (code !== 0) {          
-        writeRotateDeleteError(null, null, `FFmpeg process exited with code ${code}`);
+        DB.writeRotateDeleteError(null, null, `FFmpeg process exited with code ${code}`);
         cleanupTempFile(tempFilePath); // Ensure temp file is cleaned up
         reject();
         return;
@@ -295,7 +360,7 @@ async function addCommentToMP4(filePath, commentString) {
         // Proceed with file operations after ffmpeg has completed
       fs.unlink(filePath, (unlinkError) => {
         if (unlinkError) {
-          writeRotateDeleteError(null, null, 'Error deleting original file:', unlinkError, 'cannot replace file');            
+          DB.writeRotateDeleteError(null, null, 'Error deleting original file:', unlinkError, 'cannot replace file');            
           // Cleanup the temp file and resolve without deleting filePath
           cleanupTempFile(tempFilePath);
           reject();
@@ -304,7 +369,7 @@ async function addCommentToMP4(filePath, commentString) {
 
         fs.rename(tempFilePath, filePath, (renameError) => {
           if (renameError) {
-            writeRotateDeleteError(null, null, 'Error replacing original file:', renameError);              
+            DB.writeRotateDeleteError(null, null, 'Error replacing original file:', renameError);              
             cleanupTempFile(tempFilePath); // Ensure temp file is cleaned up
             reject();
             return;
@@ -320,7 +385,7 @@ function cleanupTempFile(tempFilePath) {
   fs.unlink(tempFilePath, (err) => {
     if (err) {
       errormsg = `Failed to clean up temp file (${tempFilePath}):`, err.message
-      writeRotateDeleteError(null, null, errormsg); // located in DBFunctions.js
+      DB.writeRotateDeleteError(null, null, errormsg); // located in DBFunctions.js
       
     }
   });
@@ -335,7 +400,7 @@ async function NewPlaylist(data){
   try{
     PlaylistCreated = await DB.CreateAddPlaylistTable(new_name,playlistdirs, true);                                         
   }catch (err){
-    //writeRotateDeleteError(null, null, 'Error creating playlist table: '+ new_name + ' ' + err.message);   
+    //DB.writeRotateDeleteError(null, null, 'Error creating playlist table: '+ new_name + ' ' + err.message);   
     PlaylistCreated = false;   
   }    
   let payload = {command: 'action-update', data: null};
@@ -400,29 +465,8 @@ async function getStartDir(SelectedDir) {
 }
 
 
-
-ipcMain.on('app_sendrequest_response', (event, arg) => { // event is not needed once all is re-written
-    // We expect the argument to be an object with a request_id and the response data.
-    const { request_id, responseData } = arg;
-    
-    // Retrieve the correct response object using the request_id.
-    const res = activeRequests.get(request_id);
-
-    if (res) {
-        // Send the response back to the original client.
-        res.json(responseData);
-        // Clean up: remove the response object from the map to free up memory.
-        activeRequests.delete(request_id);
-    } else {
-        // Log an error if the request ID isn't found (shouldn't happen with this setup).
-        console.error('Response object not found for request_id:', request_id);
-    }
-});
-
-
 var resetDisplayWindow = false; // used to determine if display window should be reset Handling 'resetdisplaywindow' event
-async function resetDisplay(){  
-  //mainWindow.webContents.send('resetImageWindow', null);   //update UI in index.html and write to DB 
+async function resetDisplay(){    
   if (ImageWindow) {
     resetDisplayWindow = true; // set flag to true so we know to reset display window
     await ImageWindow.close();    
@@ -432,23 +476,7 @@ async function resetDisplay(){
   }
 };
 
-
-ipcMain.on('close_image_window', async (event, arg) => {
-  if (ImageWindow)  {
-    await ImageWindow.close();  // fires ImageWindow.on('closed', function ()... which sets ImageWindow to null
-  }
-})
-
-
-// determine uptime for picture frame application and return  
-ipcMain.on('Get_PicFrameUptime', (event, arg) => {
-  let picframeuptime = getPicFrameUptime();
-  if (ImageWindow){
-    ImageWindow.webContents.send('PicFrameUptime', picframeuptime);
-  }
-})
-
-function getPicFrameUptime(){
+async function getPicFrameUptime(){
   let uptime = process.uptime();  
 
   // calculate days hour min seconds
@@ -475,37 +503,7 @@ function getPicFrameUptime(){
 }
 
 
-ipcMain.handle('ipcMain_invoke', async (event, payload) => {
-  command = payload.command;
-  payloadData = payload.data;
-  response = {command: command, data: null};
-  switch (command){
-    case 'get-local-ips':
-      response.data = getLocalIPs(); // returns the IPs to the renderer
-    break;
-    case 'resetdisplaywindow':
-      await resetDisplay();
-    break;
-    case 'playlist_dir_dialog':
-      returnvalue = await dialog.showOpenDialog({properties: ['openFile', 'openDirectory']});   
-      response.data = returnvalue.filePaths  
-    break;
-    case 'OpenPopup':
-      ipcMain.emit('popup', 'index.html', payloadData);
-    break;
-    case 'ClosePopup':
-      if (Popup){
-        Popup.close(); // fires Popup.on('closed', function ()... which sets ImageWindow to null          
-      }
-    break;
-    case 'playlist_updated':    
-      let payload = {command: 'action-update', data: null}
-      ipc_indexPOST(payload);      
-    break;
-  }
-  return response;
 
-});
 
 
 function getLocalIPs() {
@@ -581,11 +579,13 @@ function createWindow () {
   });
     
   // Emitted when the window is closed.
-  mainWindow.on('closed', function () { 
+  mainWindow.on('closed', async function () { 
     if (Popup) {
       Popup.close();
     }
-    ipcMain.emit('close_image_window');    
+    if (ImageWindow)  {
+      await ImageWindow.close();  // fires ImageWindow.on('closed', function ()... which sets ImageWindow to null
+    }  
     mainWindow = null;
   });
 }
@@ -635,7 +635,7 @@ ipcMain.on('startshow', async (event, arg) => {
       }, 120000); //give it 2 min to respond.   120000 = 2 minutes      
 
     } else {            
-     // writeRotateDeleteError(null, null, 'No webcontents or imagewindow = null main.js resetting ' + new Date()); // write reset to database      
+     // DB.writeRotateDeleteError(null, null, 'No webcontents or imagewindow = null main.js resetting ' + new Date()); // write reset to database      
     }
 
   }, 300000); // run every 5 minutes 300000 = 5 minutes
