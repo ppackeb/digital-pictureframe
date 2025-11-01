@@ -19,9 +19,7 @@ const devtools = true; // enables dev tool windows
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow=null;  //index.html
 let ImageWindow = null;  //dipslay.html
-let PlaylistConfigWindow = null; //playlist.html
 let Popup = null; //popup.html
-let res_app_sendrequest = null;  //hold req for call from appServer.html for a return value
 let db = null; // database connection
 
 
