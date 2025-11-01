@@ -80,8 +80,14 @@ the calling html file before folderBrowser.js
 #dir_table {
   width: 100%;
 }
+
 tr.grey th {
   background-color: white;
+}
+
+/* alternating row colors */
+tr:nth-child(even) {
+  background-color: #f9f9f9;
 }
 
 /* Modal Overlay */
@@ -149,36 +155,6 @@ tr.grey th {
   backModalBtn.addEventListener("click", backModalClicked);
 
 
-  async function PrepMessage(payload){  
-    messagePayload = null;    
-    switch (payload){        
-      case 'TopImageDir':
-        messagePayload = {command:"ImageDir", data:"TopDir" };
-      break;
-      case 'SubImageDir':      
-        messagePayload = {command: "ImageDir",data: SubDir};
-      break;
-    }  
-    try {
-      // Await the response from the new, async makeRequest function.
-      returnData = await makeRequest('/app_sendrequest', messagePayload);
-      command = returnData.command;
-      data = returnData.data;
-      // Handle the response based on the command.
-      switch(messagePayload.command){        
-        case 'ImageDir':
-          return data.data;
-        break;        
-        
-        default:          
-        break;
-      }      
-    } catch (error) {        
-      //ShowAlert('Error in html POST. '+ error, false).then((result) => {                  
-      // })  
-    } 
-  }
-
   // Help button calls showAlert from customAlerts.js
   document.getElementById("FolderTableInfo").onclick = function() {
     ShowAlert('Type the folder path directly or click the folder path to progress in the hierarchy to find the desired folder. Click "OK" to select the folder. Use "Back" to move up the current folder hierarchy path. Use "Cancel" to exit without selecting a folder.', false).then(() => {       
@@ -192,7 +168,7 @@ tr.grey th {
     closeModalSubmit.disabled = false;
     modal.classList.remove("hidden");
     overlay.classList.remove("hidden");
-    let returnData = await PrepMessage('TopImageDir');
+    let returnData = await PrepMessage('ImageDir', "TopDir");    
     PopDirTable(returnData);
   }
 
@@ -217,7 +193,7 @@ function closeModalSubmitted() {
   async function backModalClicked() {
     if (SubLevelDir.length > 0) {
       SubDir = SubLevelDir.pop();
-      let result = await PrepMessage('SubImageDir');
+      let result = await PrepMessage('ImageDir', SubDir);      
       if (result !== 'bad dir') {
         PopDirTable(result);
         document.getElementById('btn-submit').disabled = false;
@@ -227,7 +203,7 @@ function closeModalSubmitted() {
         document.getElementById('btn-submit').disabled = true;
       }
     } else {
-      let result = await PrepMessage('TopImageDir');
+      let result = await PrepMessage('ImageDir', "TopDir"); 
       PopDirTable(result);
     }
   }
@@ -235,7 +211,7 @@ function closeModalSubmitted() {
 
   async function handleDirInput() {
     SubDir = dirInput.value;
-    let result = await PrepMessage('SubImageDir');
+    let result = await PrepMessage('ImageDir', SubDir);
     if (result !== 'bad dir') {
       PopDirTable(result);
       document.getElementById('btn-submit').disabled = false;
@@ -277,7 +253,7 @@ function closeModalSubmitted() {
       let row = e.target.parentElement.rowIndex;
       SubDir = SystemDirs[row + 1];
       SubLevelDir.push(SystemDirs[0]);
-      let returnData = await PrepMessage('SubImageDir');
+      let returnData = await PrepMessage('ImageDir', SubDir);
       PopDirTable(returnData);
     }
   });
