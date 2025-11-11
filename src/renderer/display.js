@@ -141,6 +141,29 @@ async function selectRandomImages(PlaylistName, ImagesPerDir, ImagestoPreload) {
     return SelectedImages;
 }
     
+function updateLoadedItemMetaData(data){
+    selectItemPath = data.ImagePath;
+    Comments = data.dbEXIFImageComments;
+    HiddenFlag = data.dbEXIFHiddenImages;
+    console.log(HiddenFlag)
+    LoadedImagesData.forEach((value, index) => {
+        if (value.FilePath == selectItemPath){
+            LoadedImagesData[index].HiddenFlag = HiddenFlag; 
+            LoadedImagesData[index].Comments = Comments; 
+            if (HiddenFlag){
+                SetUIimageorData("#imageHideable", false, './assets/images/app hide.png');
+            }else{
+                SetUIimageorData("#imageHideable", true, null);    
+            }
+            if (Comments != null && Comments.length > 0){
+                SetUIimageorData("#imageComments", false, './assets/images/imgcomments.png');
+            }
+            else{
+                SetUIimageorData("#imageComments", true, null);
+            }
+        }
+    });
+}
 
 async function addLoadedImagesData(filePath) {
 
@@ -456,7 +479,7 @@ async function rotateImage(rotationValue, ItemInfo){
 
     if (!validExts.includes(fileExt)) {    
         writeRotateDeleteError(ImagePath,null,null)    
-         SetUIimageorData('#noRotation', false, './assets/images/badrotateimage.png');            
+        SetUIimageorData('#noRotation', false, './assets/images/badrotateimage.png');            
         setTimeout(function(){    
             SetUIimageorData('#noRotation', true,null);            
         },1500);
