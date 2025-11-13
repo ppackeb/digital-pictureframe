@@ -13,13 +13,15 @@ const { execFile } = require('child_process');
 const { ExifTool } = require('exiftool-vendored');  //the curly brackets { ExifTool } destructures the ExifTool property from the module's exports, so you can use it directly in your code
 const exiftool = new ExifTool();
 
-const devtools = false; // enables dev tool windows
+const devtools = true; // enables dev tool windows
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow=null;  //index.html
 let ImageWindow = null;  //dipslay.html
+let PlaylistConfigWindow = null; //playlist.html
 let Popup = null; //popup.html
+let res_app_sendrequest = null;  //hold req for call from appServer.html for a return value
 let db = null; // database connection
 
 
@@ -135,11 +137,15 @@ router.post('/app_sendrequest', async (req, res) => {
   }
 });
 
-function ipc_displayPOST(payload) {  
+function ipc_displayPOST(payload) {    
   win = ImageWindow;
   channel = "ipc_display";
   let response = {command: payload.command, data: null}; // Default response structure  
-  request_id = payload.request_id;
+  request_id = payload.request_id;  
+  // for cases when the call does not come from PrepMessage per the app, need to add a request_id
+  if (request_id == null || request_id == undefined){ 
+    request_id = Date.now().toString() + Math.random().toString(36).substring(2);
+  }
 
   if (!win || win.isDestroyed() || !win.webContents){
     ipcMain.emit('app_sendrequest_response', null, { request_id, responseData: response });
@@ -148,7 +154,7 @@ function ipc_displayPOST(payload) {
   
   return new Promise((resolve, reject) => {
     
-        // Listen for one reply only (auto-cleanup)
+    // Listen for one reply only (auto-cleanup)
     ipcMain.once(`${channel}-reply-${request_id}`, (event, response) => {
   
       // resolve the response
@@ -236,6 +242,7 @@ async function ipc_mainPOST (payload){
       response.data = getLocalIPs();
     break;
   }  
+  
   ipcMain.emit ('app_sendrequest_response', null, {request_id: request_id, responseData: response});
 }
 
@@ -301,6 +308,7 @@ ipcMain.on('app_sendrequest_response', (event, arg) => { // event is not needed 
         activeRequests.delete(request_id);
     } else {
         // Log an error if the request ID isn't found (shouldn't happen with this setup).
+        console.error('Response object not found for request_id:', request_id);
     }
 });
 
@@ -321,6 +329,7 @@ async function WriteMetaData(data){
     } else {                        
       await addCommentToMP4(data.ImagePath, updatedComment);              
     }
+    ipc_displayPOST({ command: 'updateLoadedItemMetaData', data: data }); // refresh metadata in display window
   } catch (error){
     DB.writeRotateDeleteError(null, null, 'Error writing EXIF data:', error);      
   }
@@ -587,7 +596,6 @@ function createWindow () {
     mainWindow = null;
   });
 }
-
 
 ipcMain.on('startshow', async (event, arg) => {  
   if (devtools){

@@ -292,6 +292,9 @@
       data: null
     }; 
     switch (AppCommand){
+      case 'updateLoadedItemMetaData':         
+         updateLoadedItemMetaData(AppData);
+      break;
       case 'volume':                    
         videoVolume = AppData;
         document.getElementById('playvideo').volume = AppData;
