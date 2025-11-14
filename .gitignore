@@ -14,3 +14,6 @@ build/
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+# Ignore local config and notes
+todo.md
