@@ -19,16 +19,14 @@ const devtools = true; // enables dev tool windows
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow=null;  //index.html
 let ImageWindow = null;  //dipslay.html
-let PlaylistConfigWindow = null; //playlist.html
 let Popup = null; //popup.html
-let res_app_sendrequest = null;  //hold req for call from appServer.html for a return value
 let db = null; // database connection
 
 
 /*-----------------------------------*/
 /* Server and Appserver specific code */
 
-// setup express server for AppServer.html calls
+// setup express server for 
 AppServer.use(require('body-parser').json()); // used by express to read HTTP POST data from req
 AppServer.use('/', router); // tells express server to use the router for all requests strating with root URL '/'
 AppServer.use(express.static(path.dirname(__dirname))); // everything under src
