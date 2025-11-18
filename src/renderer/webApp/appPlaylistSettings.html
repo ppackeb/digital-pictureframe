@@ -124,6 +124,7 @@ async function RebuildAll(){
     ShowSavingModal(false);  // from customAlert.js     
     await ShowAlert("Error rebuilding one or more Playlists", false);
   } else {
+    PrepMessage("refresh");
     ShowSavingModal(false);  // from customAlert.js               
     await ShowAlert("Update successful", false);          
     location.href='/appOptions';
@@ -146,7 +147,8 @@ async function WriteDB(){
 }
 
 async function SaveandExit(){
-  WriteDB();
+  await WriteDB();  
+  PrepMessage("refresh");
   location.href = '/appOptions'; // go back to options page after saving
 }
 

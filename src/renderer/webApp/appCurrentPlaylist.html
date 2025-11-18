@@ -44,6 +44,7 @@
         selPLAYLIST: 'playlist_'+ selectedPlaylist
       };      
       let result = await PrepMessage("app_writeDB", savedata);
+      PrepMessage("refresh");
     }    
     location.href = '/'; 
   }

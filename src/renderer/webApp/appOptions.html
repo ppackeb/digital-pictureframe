@@ -62,7 +62,7 @@
     }    
   } 
 
-  document.getElementById('HiddenImages').addEventListener('click', function() {
+  document.getElementById('HiddenImages').addEventListener('click', async function() {
     hideImagesState = hideImagesState === 1 ? 0 : 1;
     if (hideImagesState == 1) { // hidestate true / false
       this.src = 'app hide.png'; // hide true
@@ -71,8 +71,9 @@
     }
     let savedata = {
       hideImages: hideImagesState
-    };  
-    PrepMessage('app_writeDB', savedata);    
+    };      
+    await PrepMessage("app_writeDB", savedata);
+    PrepMessage("refresh");  
   });
 
 

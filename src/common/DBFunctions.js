@@ -17,6 +17,7 @@ if (process.env.NODE_ENV === 'development'){
     db.pragma('journal_mode = WAL');
 }
 
+// get instances of db and main process electron references
 function initDBFunctions({ dbInstance, electron }) {
     // set internal handles used by functions above (assumes code references these variable names)
     db = dbInstance;
@@ -66,32 +67,37 @@ async function rebuildall() {
         return;
     }
     isRebuilding = true;
-        
-    runningContext = 'renderer';  // default to this as its teh most common
+            
     if (process && process.type === 'browser') {
-        // In main process (loaded by main.js)
-        runningContext = 'main';
+        // In main process (loaded by main.js)        
+        electronRefs.ipcMain.emit('popup','main.js','Rebuilding Index');               
+    }else{  // processor.type === 'renderer'
+        payload = {command: 'OpenPopup', data: 'Rebuilding Index', runningContext: 'index.html'};
+        ipcRenderer.invoke('ipcMain_invoke', payload);    
     }
 
     let errorOccured = false;
+    
+    /*
     if (runningContext == "renderer"){
         //ipcRenderer.send('popup', 'Rebuilding Index');      
-        ipcRenderer.invoke('ipcMain_invoke', 'OpenPopup');    
-    }else{
+        payload = {command: 'OpenPopup', data: 'Rebuilding Index', runningContext: runningContext};
+        ipcRenderer.invoke('ipcMain_invoke', payload);    
+    }else{        
         electronRefs.ipcMain.emit('popup','main.js','Rebuilding Index');          
     }
+    */
     var PlaylistTables = readPlaylistPaths();
     for (const [TableName, dirPaths] of Object.entries(PlaylistTables)) {    
         errorOccured = await CreateAddPlaylistTable(TableName, dirPaths, true)     
     }  
-    if (runningContext == "renderer"){  
-        ipcRenderer.invoke('ipcMain_invoke', 'ClosePopup');    
-        //ipcRenderer.send('close_popup', '');
+    
+    payload = {command: 'ClosePopup', data: null};
+    if (process && process.type === 'browser') {
+        electronRefs.ipcMain.emit('popup','closePopup',null);          
+        
     }else{
-        const popup = electronRefs.getPopup();
-        if (popup){
-            popup.close(); // fires Popup.on('closed', function ()... which sets ImageWindow to null          
-        }        
+        ipcRenderer.invoke('ipcMain_invoke', payload);    
     }
     
     isRebuilding = false;    

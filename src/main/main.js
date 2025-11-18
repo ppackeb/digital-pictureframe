@@ -19,9 +19,7 @@ const devtools = false; // enables dev tool windows
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow=null;  //index.html
 let ImageWindow = null;  //dipslay.html
-let PlaylistConfigWindow = null; //playlist.html
 let Popup = null; //popup.html
-let res_app_sendrequest = null;  //hold req for call from appServer.html for a return value
 let db = null; // database connection
 
 
@@ -52,9 +50,10 @@ if (app.isPackaged) {
 }
 
 const DB = require(path.join(__dirname, '..', 'common', 'DBFunctions.js'));  // load DBFunctions.js
-DB.initDBFunctions({
+
+DB.initDBFunctions({// export variables to DBFunctions.js
   dbInstance: db,
-  electron: { app, BrowserWindow, screen, ipcMain, dialog, webContents,  getPopup: () => Popup }
+  electron: { ipcMain}
 });
 
 
@@ -212,7 +211,7 @@ async function ipc_mainPOST (payload){
     break;
     case "app_writeDB":
       DB.appWriteDB(requestData);
-      resetDisplay();
+      //resetDisplay();
     break;
     case "refresh":
       resetDisplay();
@@ -249,6 +248,9 @@ async function ipc_mainPOST (payload){
 ipcMain.handle('ipcMain_invoke', async (event, payload) => {
   command = payload.command;
   payloadData = payload.data;
+  if (payload.runningContext){
+    runningContext = payload.runningContext;
+  }
   response = {command: command, data: null};
   switch (command){
     case 'get-local-ips':
@@ -262,7 +264,7 @@ ipcMain.handle('ipcMain_invoke', async (event, payload) => {
       response.data = returnvalue.filePaths  
     break;
     case 'OpenPopup':
-      ipcMain.emit('popup', 'index.html', payloadData);
+      ipcMain.emit('popup', runningContext, payloadData);
     break;
     case 'ClosePopup':
       if (Popup){
@@ -683,6 +685,11 @@ ipcMain.on('popup', async (event, arg) => {
         popupCaller = mainWindow;
       }
     break; 
+    case 'ClosePopup':
+      if (Popup){
+        Popup.close(); // fires Popup.on('closed', function ()... which sets ImageWindow to null          
+      }
+    break;
   }  
 
     if (devtools){
