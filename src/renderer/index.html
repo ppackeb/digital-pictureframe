@@ -356,16 +356,18 @@ function rebuildIndexTimer() {
 }
 
   async function PrepMessage(command, payload=null){    
-    let messagePayload = {command: command, data: payload};   
+    let messagePayload = {command: command, data: payload};      
     switch (command){
       case 'resetdisplaywindow':        
       case 'get-local-ips':
-      case 'playlist_dir_dialog':
-      case 'OpenPopup':
+      case 'playlist_dir_dialog':      
       case 'ClosePopup':
       case 'playlist_updated':
         // no additional data needed
       break;      
+      case 'OpenPopup':
+        messagePayload.runningContext = 'index.html'; // add runnnig context for popup
+      break;
     }
     try{
       response = await ipcRenderer.invoke('ipcMain_invoke', messagePayload);

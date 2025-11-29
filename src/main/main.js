@@ -13,7 +13,7 @@ const { execFile } = require('child_process');
 const { ExifTool } = require('exiftool-vendored');  //the curly brackets { ExifTool } destructures the ExifTool property from the module's exports, so you can use it directly in your code
 const exiftool = new ExifTool();
 
-const devtools = false; // enables dev tool windows
+const devtools = true; // enables dev tool windows
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
