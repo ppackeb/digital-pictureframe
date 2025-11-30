@@ -36,7 +36,8 @@
       <img id='pause' src="">
       <img id='noRotation' src="">         
       <img id='HideImage' src="">               
-      <svg id="pulse-circle" display="none" width="48" height="48" > 
+      <img id='microphone' src="">
+      <svg id='pulse-circle' display="none" width="48" height="48" > 
          <circle cx="24" cy="24" r="12"></circle> 
       </svg>      
 
@@ -64,6 +65,7 @@
    <script type='text/javascript' src='../common/DBFunctions.js'></script>
    <script type='text/javascript' src='../common/videoUtility.js'></script>   
    <script type='text/javascript' src='display.js'></script>        
+   <script type='text/javascript' src='../common/voiceCommands.js'></script>        
 
 
    <script>      
@@ -136,9 +138,10 @@
    };
    
 
-  async function initialize(){    
-    readDataBase(); // reads data from DBFunctions.js                    
-    copy_and_display();          
+   async function initialize(){    
+      readDataBase(); // reads data from DBFunctions.js                    
+      copy_and_display();   
+      startDetection(); // start voice command detection from voiceCommands.js
   };
 
    

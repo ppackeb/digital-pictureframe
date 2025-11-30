@@ -1,0 +1,10 @@
+C OM P U TER :2.0 #0.3
+P IC T URE F R A ME :2.0 #0.3
+▁NEXT :2.0 #0.3
+▁BACK :2.0 #0.3
+▁PLAY :2.0 #0.3
+P A U SE :2.0 #0.3
+S T O P :2.0 #0.3
+RE S U ME :2.0 #0.3
+S K I P :2.0 #0.3
+LO CA TION :2.0 #0.3

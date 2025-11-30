@@ -206,6 +206,15 @@ body, html{
    z-index: 20;        
 }
 
+#microphone {
+   position: absolute;
+   right: 160px;
+   bottom: 0px;
+   width: auto;        
+   height: 30px;
+   z-index: 20;        
+}
+
 #imageHideable {   
    position: absolute;   
    left: 60px;

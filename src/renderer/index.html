@@ -196,11 +196,9 @@
   
   <script type="text/javascript" src="../common/requireModule.js"></script>
   <script type="text/javascript" src="../common/DBFunctions.js"></script>  
-  <script type="text/javascript" src="../common/qrcode.js"></script>
-
+  <script type="text/javascript" src="../common/qrcode.js"></script>  
 
 <script>
-
 
   let playlistnames = null; // all playlists names in db format
   let lastAppPortValue = ""; // Track last saved value used to dynamically build  QR code as port changes
@@ -290,7 +288,7 @@
 
   async function initialize(){    
     await writeUI();// put all data UI
-    rebuildIndexTimer(); //starts timer to rebuild playlists at midnight 
+    rebuildIndexTimer(); //starts timer to rebuild playlists at midnight     
     openTab('tab1', document.querySelector('.tab'));
   }
 

@@ -40,6 +40,25 @@ function SetUIimageorData(DivID, Reset, Data){
                 element.src = '';
             },1500);    
         break;
+        case '#pulse-circle':            
+            if (Reset) {
+                element.style.display = "none";
+                element.style.animation = "none";
+                element.removeAttribute("fill");                
+            } else {
+                element.style.display = "block";
+                element.style.animation = "pulse 1.5s infinite";
+                element.setAttribute("fill", "blue");
+                element.setAttribute("fill", "rgb(116, 192, 252)");
+            }
+        break;
+        case '#microphone':
+            if (Reset){
+                element.src = '';
+            }else{
+                element.src = Data;
+            }
+        break;
         default:
         return;
     }
