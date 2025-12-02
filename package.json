@@ -1,12 +1,13 @@
 {
   "name": "digitalpictureframe",
-  "version": "7.5.2",
+  "version": "8.0.0",
   "description": "Digital pictureframe",
   "main": ".\\src\\main\\main.js",
   "scripts": {
     "start": "electron .",
     "rebuild": ".\\node_modules\\.bin\\electron-rebuild.cmd -f -m ./node_modules/better-sqlite3",
-    "dist": "electron-builder"
+    "dist": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
   },
   "repository": {
     "type": "",
@@ -18,7 +19,6 @@
   "author": "Ppack",
   "license": "CC0-1.0",
   "devDependencies": {
-    "@electron/rebuild": "^3.6.0",
     "electron": "^37.2.3",
     "electron-builder": "^26.0.12"
   },
@@ -30,6 +30,9 @@
     "sherpa-onnx-node": "^1.12.18"
   },
   "build": {
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
+    "detectUpdateChannel": false,
     "appId": "com.picframe.quickstart",
     "win": {
       "target": "nsis",

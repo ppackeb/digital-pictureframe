@@ -73,35 +73,63 @@ function handleIntent(intent) {
   resetWakeIntent();
 }
 
-
 // ----------------------------------------------
 // Create Recognizer
 // ----------------------------------------------
 function createOnlineRecognizer() {
-  const config = {
-    'featConfig': {
-      'sampleRate': 16000,
-      'featureDim': 80,
-    },
-    'modelConfig': {
-      'transducer': {
-        'encoder':'./src/renderer/assets/sherpa/encoder-epoch-12-avg-2-chunk-16-left-64.onnx',
-        'decoder':'./src/renderer/assets/sherpa/decoder-epoch-12-avg-2-chunk-16-left-64.onnx',
-        'joiner':'./src/renderer/assets/sherpa/joiner-epoch-12-avg-2-chunk-16-left-64.onnx',
+  console.log(process.env.NODE_ENV)
+  let config = null;  
+  if (process.env.NODE_ENV === 'development') {  
+    config = {
+      'featConfig': {
+        'sampleRate': 16000,
+        'featureDim': 80,
       },
-      'tokens':'./src/renderer/assets/sherpa/tokens.txt',
-      'numThreads': 2,
-      'provider': 'cpu',
-      'debug': 1,
-    },
-    'keywords': './src/renderer/assets/sherpa/keywords.txt',
-    'decodingMethod': 'greedy_search',
-    'maxActivePaths': 4,
-    'enableEndpoint': true,
-    'rule1MinTrailingSilence': 2.4,
-    'rule2MinTrailingSilence': 1.2,
-    'rule3MinUtteranceLength': 20
-  };
+      'modelConfig': {
+        'transducer': {
+          'encoder':'./src/renderer/assets/sherpa/encoder-epoch-12-avg-2-chunk-16-left-64.onnx',
+          'decoder':'./src/renderer/assets/sherpa/decoder-epoch-12-avg-2-chunk-16-left-64.onnx',
+          'joiner':'./src/renderer/assets/sherpa/joiner-epoch-12-avg-2-chunk-16-left-64.onnx',
+        },
+        'tokens':'./src/renderer/assets/sherpa/tokens.txt',
+        'numThreads': 2,
+        'provider': 'cpu',
+        'debug': 1,
+      },
+      'keywords': './src/renderer/assets/sherpa/keywords.txt',
+      'decodingMethod': 'greedy_search',
+      'maxActivePaths': 4,
+      'enableEndpoint': true,
+      'rule1MinTrailingSilence': 2.4,
+      'rule2MinTrailingSilence': 1.2,
+      'rule3MinUtteranceLength': 20
+    };
+  }else{
+    config = {
+      'featConfig': {
+        'sampleRate': 16000,
+        'featureDim': 80,
+      },
+      'modelConfig': {
+        'transducer': {
+          'encoder': path.join(process.resourcesPath, "app.asar.unpacked/src/renderer/assets/sherpa/encoder-epoch-12-avg-2-chunk-16-left-64.onnx"),
+          'decoder': path.join(process.resourcesPath, "app.asar.unpacked/src/renderer/assets/sherpa/decoder-epoch-12-avg-2-chunk-16-left-64.onnx"),
+          'joiner': path.join(process.resourcesPath, "app.asar.unpacked/src/renderer/assets/sherpa/joiner-epoch-12-avg-2-chunk-16-left-64.onnx"),
+        },
+        'tokens':path.join(process.resourcesPath, "app.asar.unpacked/src/renderer/assets/sherpa/tokens.txt"),
+        'numThreads': 2,
+        'provider': 'cpu',
+        'debug': 1,
+      },
+      'keywords': path.join(process.resourcesPath, "app.asar.unpacked/src/renderer/assets/sherpa/keywords.txt"),
+      'decodingMethod': 'greedy_search',
+      'maxActivePaths': 4,
+      'enableEndpoint': true,
+      'rule1MinTrailingSilence': 2.4,
+      'rule2MinTrailingSilence': 1.2,
+      'rule3MinUtteranceLength': 20
+    };
+  }
   return new sherpa_onnx.OnlineRecognizer(config);
 }
 
@@ -124,8 +152,6 @@ registerProcessor('stream-processor', StreamProcessor);
 // ----------------------------------------------
 // Start Detection
 // ----------------------------------------------
-
-
 async function startDetection() {
 
   let blobUrl;

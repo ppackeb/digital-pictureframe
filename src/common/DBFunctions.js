@@ -188,7 +188,7 @@ async function CreateAddPlaylistTable(PlaylistName, StartingPathArray, FirstRun,
             await new Promise(resolve => setImmediate(resolve));
 
         } catch (err) {
-            console.log(err);
+
             // log or ignoreoldSelections            
         }
     }

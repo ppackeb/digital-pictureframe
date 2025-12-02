@@ -163,8 +163,7 @@ async function selectRandomImages(PlaylistName, ImagesPerDir, ImagestoPreload) {
 function updateLoadedItemMetaData(data){
     selectItemPath = data.ImagePath;
     Comments = data.dbEXIFImageComments;
-    HiddenFlag = data.dbEXIFHiddenImages;
-    console.log(HiddenFlag)
+    HiddenFlag = data.dbEXIFHiddenImages;    
     LoadedImagesData.forEach((value, index) => {
         if (value.FilePath == selectItemPath){
             LoadedImagesData[index].HiddenFlag = HiddenFlag; 

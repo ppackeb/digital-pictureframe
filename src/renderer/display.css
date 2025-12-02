@@ -201,17 +201,17 @@ body, html{
 
 #pulse-circle {
    position: absolute;
-   right: 160px;
-   bottom: -6px;
+   right: 75px;
+   bottom: 20px;
    z-index: 20;        
 }
 
 #microphone {
    position: absolute;
-   right: 160px;
-   bottom: 0px;
+   right: 75px;
+   bottom: 10px;
    width: auto;        
-   height: 30px;
+   height: 45px;
    z-index: 20;        
 }
 
