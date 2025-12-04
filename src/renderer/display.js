@@ -40,6 +40,33 @@ function SetUIimageorData(DivID, Reset, Data){
                 element.src = '';
             },1500);    
         break;
+        case '#pulse-circle':            
+            if (Reset) {
+                const mic = document.querySelector('pulsing-mic');
+                mic.hide();
+                /*
+                element.style.display = "none";
+                element.style.animation = "none";
+                element.removeAttribute("fill");                
+                */
+            } else {
+                const mic = document.querySelector('pulsing-mic');
+                mic.show();
+                /*
+                element.style.display = "block";
+                element.style.animation = "pulse 1.5s infinite";
+                element.setAttribute("fill", "blue");
+                element.setAttribute("fill", "rgb(116, 192, 252)");
+                */
+            }
+        break;
+        case '#microphone':
+            if (Reset){
+                element.src = '';
+            }else{
+                element.src = Data;
+            }
+        break;
         default:
         return;
     }
@@ -144,8 +171,7 @@ async function selectRandomImages(PlaylistName, ImagesPerDir, ImagestoPreload) {
 function updateLoadedItemMetaData(data){
     selectItemPath = data.ImagePath;
     Comments = data.dbEXIFImageComments;
-    HiddenFlag = data.dbEXIFHiddenImages;
-    console.log(HiddenFlag)
+    HiddenFlag = data.dbEXIFHiddenImages;    
     LoadedImagesData.forEach((value, index) => {
         if (value.FilePath == selectItemPath){
             LoadedImagesData[index].HiddenFlag = HiddenFlag; 

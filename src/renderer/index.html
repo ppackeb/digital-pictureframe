@@ -196,11 +196,9 @@
   
   <script type="text/javascript" src="../common/requireModule.js"></script>
   <script type="text/javascript" src="../common/DBFunctions.js"></script>  
-  <script type="text/javascript" src="../common/qrcode.js"></script>
-
+  <script type="text/javascript" src="../common/qrcode.js"></script>  
 
 <script>
-
 
   let playlistnames = null; // all playlists names in db format
   let lastAppPortValue = ""; // Track last saved value used to dynamically build  QR code as port changes
@@ -290,7 +288,7 @@
 
   async function initialize(){    
     await writeUI();// put all data UI
-    rebuildIndexTimer(); //starts timer to rebuild playlists at midnight 
+    rebuildIndexTimer(); //starts timer to rebuild playlists at midnight     
     openTab('tab1', document.querySelector('.tab'));
   }
 
@@ -356,16 +354,18 @@ function rebuildIndexTimer() {
 }
 
   async function PrepMessage(command, payload=null){    
-    let messagePayload = {command: command, data: payload};   
+    let messagePayload = {command: command, data: payload};      
     switch (command){
       case 'resetdisplaywindow':        
       case 'get-local-ips':
-      case 'playlist_dir_dialog':
-      case 'OpenPopup':
+      case 'playlist_dir_dialog':      
       case 'ClosePopup':
       case 'playlist_updated':
         // no additional data needed
       break;      
+      case 'OpenPopup':
+        messagePayload.runningContext = 'index.html'; // add runnnig context for popup
+      break;
     }
     try{
       response = await ipcRenderer.invoke('ipcMain_invoke', messagePayload);

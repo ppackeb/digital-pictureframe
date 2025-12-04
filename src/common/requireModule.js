@@ -4,6 +4,7 @@ const fs = require('fs');  // used for all file i/o
 
 const path = require('path'); // used to for path info
 const { ipcRenderer } = require('electron'); // node used to pass info from render to main.js
+const process = require('process'); // used to obtain uptime for application
 
 const util = require('util');    // used to promisify functions
 const child = require('child_process'); // for calling cmd line functions
