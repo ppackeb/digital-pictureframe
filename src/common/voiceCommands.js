@@ -76,8 +76,7 @@ function handleIntent(intent) {
 // ----------------------------------------------
 // Create Recognizer
 // ----------------------------------------------
-function createOnlineRecognizer() {
-  console.log(process.env.NODE_ENV)
+function createOnlineRecognizer() {  
   let config = null;  
   if (process.env.NODE_ENV === 'development') {  
     config = {
@@ -97,6 +96,7 @@ function createOnlineRecognizer() {
         'debug': 1,
       },
       'keywords': './src/renderer/assets/sherpa/keywords.txt',
+      //'decodingMethod': 'modified_beam_search',
       'decodingMethod': 'greedy_search',
       'maxActivePaths': 4,
       'enableEndpoint': true,
@@ -185,7 +185,7 @@ async function startDetection() {
         const text = result.text.trim().toUpperCase();
 
         if (text && text !== lastText) {
-          lastText = text;                    
+          lastText = text;              
           // ----------------------------------------------------
           // WAKEWORD MODE (wakeActive == false)
           // ----------------------------------------------------
@@ -215,8 +215,7 @@ async function startDetection() {
     SetUIimageorData('#microphone', false, "./assets/images/mic-none.png");
     setTimeout(() =>{
       SetUIimageorData('#microphone', true, null);
-    } , 5000); 
-    console.error(err);    
+    } , 5000);   
   } finally {
     if (blobUrl) URL.revokeObjectURL(blobUrl);
   }

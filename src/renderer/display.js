@@ -42,14 +42,22 @@ function SetUIimageorData(DivID, Reset, Data){
         break;
         case '#pulse-circle':            
             if (Reset) {
+                const mic = document.querySelector('pulsing-mic');
+                mic.hide();
+                /*
                 element.style.display = "none";
                 element.style.animation = "none";
                 element.removeAttribute("fill");                
+                */
             } else {
+                const mic = document.querySelector('pulsing-mic');
+                mic.show();
+                /*
                 element.style.display = "block";
                 element.style.animation = "pulse 1.5s infinite";
                 element.setAttribute("fill", "blue");
                 element.setAttribute("fill", "rgb(116, 192, 252)");
+                */
             }
         break;
         case '#microphone':
