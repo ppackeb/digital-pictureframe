@@ -8,3 +8,4 @@ S T O P :2.0 #0.3
 RE S U ME :2.0 #0.3
 S K I P :2.0 #0.3
 LO CA TION :2.0 #0.3
+▁HELP:2.0 #0.3

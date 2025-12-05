@@ -16,7 +16,7 @@ let intentTimer = null;
 // Keywords + Intents
 // ----------------------------------------------
 const WAKEWORDS = ["PICTURE FRAME", "COMPUTER"];
-const INTENT_WORDS = ["NEXT", "BACK", "PAUSE", "STOP", "RESUME", "PLAY", "SKIP", "LOCATION"];
+const INTENT_WORDS = ["HELP","NEXT", "BACK", "PAUSE", "STOP", "RESUME", "PLAY", "SKIP", "LOCATION"];
 
 // ----------------------------------------------
 // Reset State
@@ -68,6 +68,9 @@ function handleIntent(intent) {
     break;
     case "LOCATION":
       document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'l'}));
+    break;
+    case "HELP":
+      document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'h'}));
     break;
   }
   resetWakeIntent();
