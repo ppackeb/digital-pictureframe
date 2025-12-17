@@ -63,6 +63,7 @@ function ClosePage(){
 }
 
 function SetZoom(){  
+  // Prevent click/layout-induced mousemove from firing handler   
   const zoomElement = document.getElementById('zoom');
   if (zoomicontoggle) {
     zoomElement.src = 'minusicon.png';
@@ -78,7 +79,7 @@ function SetZoom(){
   zoomPayload.data.xpos = windowWidth / 2;
   zoomPayload.data.ypos = windowHeight / 2;
   zoomPayload.closepage.done = 1;
-  PrepMessage('ZoomImage', zoomPayload);
+  PrepMessage('ZoomImage', zoomPayload);      
 }
 
 
@@ -86,34 +87,34 @@ function SetZoom(){
 onmousemove = async function(eventObj) {
   const lineElement = document.querySelector('.horizontal-line');
   const lineBottomPosition = lineElement.offsetTop + lineElement.offsetHeight;
-  
-  const yPos = eventObj.clientY < lineBottomPosition 
-    ? eventObj.clientY 
-    : lineBottomPosition - 1;
+
+  // If the pointer is below the horizontal line, ignore the event
+  if (eventObj.clientY >= lineBottomPosition) return;
+
+  // Use the real mouse position (we know it's above the line)
   // Update payload
   zoomPayload.data.xpos = eventObj.clientX;
-  zoomPayload.data.ypos = yPos;
+  zoomPayload.data.ypos = eventObj.clientY;
   zoomPayload.closepage.done = 1;
 
   // Await PrepMessage if it's async
-  PrepMessage('ZoomImage', zoomPayload);
+  PrepMessage('ZoomImage', zoomPayload);  
 };
 
 document.addEventListener('touchmove', async function(e) {
   const touch = e.touches[0];  // Get the first touch point
   const lineElement = document.querySelector('.horizontal-line');
   const lineBottomPosition = lineElement.offsetTop + lineElement.offsetHeight;
+  // Ignore touches below the horizontal line
+  if (touch.clientY >= lineBottomPosition) return;
 
-  const yPos = touch.clientY < lineBottomPosition 
-    ? touch.clientY 
-    : lineBottomPosition - 1;
-  // Update the payload directly
+  // Update the payload directly with the real touch position
   zoomPayload.data.xpos = touch.clientX;
-  zoomPayload.data.ypos = yPos;
+  zoomPayload.data.ypos = touch.clientY;
   zoomPayload.closepage.done = 1;
 
   // Await PrepMessage if it's async
-  PrepMessage('ZoomImage', zoomPayload); 
+  PrepMessage('ZoomImage', zoomPayload);
 });
 
 </script>

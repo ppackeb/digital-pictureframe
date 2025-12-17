@@ -6,33 +6,6 @@ id overrides class selectors in css
 */
 
 
-
-#pulse-circle circle{   
-   transform-origin: center;
-}
-
-@keyframes pulse {
-   0% {
-       transform: scale(1);
-       opacity: 1;
-   }
-   50% {
-       transform: scale(1.2);
-       opacity: 0.5;
-   }
-   100% {
-       transform: scale(1);
-       opacity: 1;
-   }
-}
-
-@keyframes radiate { 
-   0% { transform: scale(1); opacity: 0.5; } 
-   100% { transform: scale(2); opacity: 0;}
-}
-
-
-
 .zoom-lens {
    position: absolute;
    border: 2px solid #000;
@@ -198,13 +171,6 @@ body, html{
    z-index: 20;
 }
 
-
-#pulse-circle {
-   position: absolute;
-   right: 75px;
-   bottom: 10px;
-   z-index: 20;        
-}
 
 #microphone {
    position: absolute;
