@@ -26,6 +26,7 @@ async function PrepMessage(command, payload=null){
     });
 
     if (!response.ok) {
+      // do nothing as caller will handle timeout or error
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 

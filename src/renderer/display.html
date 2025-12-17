@@ -291,7 +291,7 @@
     let response = {
       command: AppCommand,
       data: null
-    }; 
+    };     
     switch (AppCommand){
       case 'updateLoadedItemMetaData':         
          updateLoadedItemMetaData(AppData);
@@ -332,9 +332,6 @@
           case 'data':
             document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'd'}));
           break;
-          case 'qrcode':
-            document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'q'}));
-          break;
           default:
         }
       break;
@@ -349,12 +346,11 @@
           default:
         }
       break;
-      case 'ZoomImage':
+      case 'ZoomImage':         
         ZoomImage(AppData);
-      break;
-      default:         
-    }      
-    ipcRenderer.send(`ipc_display-reply-${request_id}`, response);
+      break;              
+    }          
+    ipcRenderer.send(`ipc_display-reply-${request_id}`, response);    
   })
 
 

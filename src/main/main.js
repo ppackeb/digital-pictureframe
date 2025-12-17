@@ -122,7 +122,8 @@ router.post('/app_sendrequest', async (req, res) => {
       activeRequests.set(request_id, res);
   } else {
       // Handle case where request_id is missing, e.g., send an error response.
-      return res.status(400).json({ error: 'Missing request_id' });
+      // do nothing for now
+      //return res.status(400).json({ error: 'Missing request_id' });
   }
 
   const foundIn = Object.keys(arrayMap).find(key => arrayMap[key].includes(req.body.command));
@@ -146,27 +147,25 @@ function ipc_displayPOST(payload) {
     request_id = Date.now().toString() + Math.random().toString(36).substring(2);
   }
 
-  if (!win || win.isDestroyed() || !win.webContents){
+  if (!win || win.isDestroyed() || !win.webContents){    
     ipcMain.emit('app_sendrequest_response', null, { request_id, responseData: response });
     return;
-  }
-  
-  return new Promise((resolve, reject) => {
-    
+  }    
+
+  return new Promise((resolve, reject) => {    
     // Listen for one reply only (auto-cleanup)
     ipcMain.once(`${channel}-reply-${request_id}`, (event, response) => {
   
       // resolve the response
-      resolve(response);
-      // Emit after promise has resolved (next tick)
-      process.nextTick(() => {
+      resolve(response);      
+      // Emit after promise has resolved (next tick)      
+      queueMicrotask(() => {                        
         ipcMain.emit('app_sendrequest_response', null, { request_id, responseData: response });
       });
     });
 
     // Send the message with requestId and data
     win.webContents.send(channel, payload);
-
   });
 }
 
@@ -310,7 +309,7 @@ ipcMain.on('app_sendrequest_response', (event, arg) => { // event is not needed 
         activeRequests.delete(request_id);
     } else {
         // Log an error if the request ID isn't found (shouldn't happen with this setup).
-        console.error('Response object not found for request_id:', request_id);
+        //console.error('Response object not found for request_id:', request_id);
     }
 });
 
