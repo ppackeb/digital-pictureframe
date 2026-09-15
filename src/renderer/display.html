@@ -69,8 +69,8 @@
    <script>      
 
       var fadetoggle = 0; // determines which image is currently faiding in or out      
-      var imgctr = 0;  // count of which image in g_Base64Images is currently displayed
-      var g_Base64Images = []; // loaded images and videos in base64 for direct display, populated from display.js
+      var imgctr = 0;  // count of which image in g_Images is currently displayed
+      var g_Images = []; // loaded image and video Blobs, populated from display.js
       //var LoadedImages = []; //array of images directories for display during debug, populated from display.js      
       var LoadedImagesData = []; //array of images directories for display during debug, populated from display.js
       var g_playpause = 1; // 0 paused, 1 playing         
@@ -463,41 +463,26 @@
    async function copy_and_display(){ 
                                         
       SetUIimageorData('#readingimages', false, './assets/images/copyfiles.png')        
-      await copy_images(); // first run of copy images from server when program starts      
-     // setTimeout(() => { 
-         SetUIimageorData('#readingimages', true, null)      
-      //}, 500);       
+      await copy_images(); // first run of copy images from server when program starts           
+      SetUIimageorData('#readingimages', true, null)            
 
       // create timer, runs immediately and every g_basedelay ms
       displaylooptimer = new Timer(function () {
-         if (g_playpause == 1 && videoloopdone == true) {            
+         if (g_playpause == 1 && videoloopdone == true && copying == false) {            
             check_imgctr_for_reset();            
          }
       }, g_basedelay);
    } 
 
-   async function check_imgctr_for_reset(){   
-      /*  
-      try{  // in case the images are still loading data we need to skip loading or processessing next image button presses         
-         displayimages();                         
-      }catch(err){
-         return;
-      }
-      imgctr++; // update image counter now that images are displayed   
-      */
-      
-      //if (imgctr >= g_Base64Images.length){  
-      if (imgctr >= g_Base64Images.length){  
-      
+   async function check_imgctr_for_reset(){         
+      if (imgctr >= g_Images.length){        
          let timePause = isCurrentTimeInRange(g_startPauseTime, g_stopPauseTime);         
          if (timePause){            
             SetUIimageorData('#IntervalPause', false, './assets/images/intervalpause.png');
          }else{                        
-            SetUIimageorData('#IntervalPause', true, null);
-            // delay added to make sure last image is loaded on web page before deletion  This is usually just an issue with video as they take a while to get background image
-            // possibly update for image loaded wait.           
-            SetUIimageorData('#readingimages', false, './assets/images/copyfiles.png');                            
-            await copy_images();                
+            SetUIimageorData('#IntervalPause', true, null);      
+            SetUIimageorData('#readingimages', false, './assets/images/copyfiles.png');                                   
+            await copy_images();                            
             SetUIimageorData('#readingimages', true, null);                               
          }         
          imgctr = 0;
@@ -507,8 +492,7 @@
       }catch(err){
          return;
       }
-      imgctr++; // update image counter now that images are displayed                              
-      
+      imgctr++; // update image counter now that images are displayed                                    
    }
 
    function displayimages() {    
@@ -519,7 +503,7 @@
       
       document.getElementById("countdowntimer").style.animation = "none";
       setTimeout(function() {
-            document.getElementById("countdowntimer").style.animation = "countdown " + g_basedelay/1000 +"s linear infinite forwards";
+         document.getElementById("countdowntimer").style.animation = "countdown " + g_basedelay/1000 +"s linear infinite forwards";
       }, 20); //need a small delay for the reset to take
       
 
@@ -528,10 +512,10 @@
       }   
       videoloopdone = true; // reset videoloopdone to true so that the video loop timer is reset   
 
-      if (g_Base64Images.length - imgctr < 0){
+      if (g_Images.length - imgctr <= 0){
          document.getElementById("countdownnumber").textContent = 1; //update the countdown number in the circle svg      
       }else{
-         document.getElementById("countdownnumber").textContent = g_Base64Images.length - imgctr; //update the countdown number in the circle svg      
+         document.getElementById("countdownnumber").textContent = g_Images.length - imgctr; //update the countdown number in the circle svg      
       }
       
 
@@ -552,12 +536,13 @@
          SetUIimageorData("#imageComments", true, null);
       }
       
-      imagetosee = g_Base64Images[imgctr];        
+      const imageBlob = g_Images[imgctr];
+      imagetosee = getBlobUrl(imageBlob);
 
-      if (imagetosee.includes("video")) {
+      if (imageBlob.type.startsWith("video/")) {
          // get an image from the video to set as the background            
-         getVideoImage(imagetosee, 2, function(img, event) {
-            SetVideoScaleStyleAttr(imagetosee);
+         getVideoImage(imageBlob, 2, function(img, event) {
+            SetVideoScaleStyleAttr(imageBlob);
             if (event.type == 'error') {             
                document.getElementById("bg_img").setAttribute("src", './assets/images/null.png');
                document.getElementById("bg_img2").setAttribute("src", './assets/images/null.png');                                                                  
@@ -616,7 +601,7 @@
 
       } else { //selection is image        
 
-         SetImageScaleStyleAttr(imagetosee,fadetoggle);                        
+         SetImageScaleStyleAttr(imageBlob,fadetoggle);                        
          if (fadetoggle == 0) {                    
             document.getElementById("mainimg2").setAttribute("src", imagetosee);
             document.getElementById("bg_img2").setAttribute("src", imagetosee);

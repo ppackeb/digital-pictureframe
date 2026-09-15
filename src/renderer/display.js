@@ -287,7 +287,7 @@ async function EXIFGetImageData(imagePath) {
             }        
         }
     } catch (err) {
-        const errortext = `Error reading EXIF at display.js: ${imagePath}`;
+       // const errortext = `Error reading EXIF at display.js: ${imagePath}`;
         //writeRotateDeleteError(null, null, errortext);
         hiddenflag = false; // Set hidden flag to false
         usercomments = null; // Set user comments to null    
@@ -308,7 +308,8 @@ async function copy_images(){
     //  clear any display errors  
     SetUIimageorData('#wifi', true, null);      
               
-    g_Base64Images = [];  //clear images from base64image array for new copy
+    releaseImageBlobUrls();
+    g_Images = [];  // clear loaded image and video Blobs for new copy
     LoadedImagesData =   []; // clear loaded images data array defined in display.html
   
   
@@ -344,8 +345,7 @@ async function copy_images(){
         }            
         try{
             filedata = fs.readFileSync(LoadedImage);
-            const base64Image = `data:${mimeType};base64,${filedata.toString('base64')}`;
-            g_Base64Images.push(base64Image);                
+            g_Images.push(new Blob([filedata], { type: mimeType }));
 
         }catch(err){                
             writeRotateDeleteError(null, null, " copy error " + LoadedImage);
@@ -353,32 +353,60 @@ async function copy_images(){
                         
             filedata = fs.readFileSync(LoadedImage);  //error check here as well!  or just create a base64 of the offline.mp4?            
                         
-            const base64Image = `data:${'video/mp4'};base64,${filedata.toString('base64')}`;
-            g_Base64Images.push(base64Image);                 
+            g_Images.push(new Blob([filedata], { type: 'video/mp4' }));
         }
     });  
     copying = false;  
 };
 
+const imageBlobUrls = new Map();
+
+function getBlobUrl(blob) {
+    if (!imageBlobUrls.has(blob)) {
+        imageBlobUrls.set(blob, URL.createObjectURL(blob));
+    }
+    return imageBlobUrls.get(blob);
+}
+
+function replaceImageBlob(index, blob) {
+    const previousBlob = g_Images[index];
+    if (previousBlob && imageBlobUrls.has(previousBlob)) {
+        URL.revokeObjectURL(imageBlobUrls.get(previousBlob));
+        imageBlobUrls.delete(previousBlob);
+    }
+    g_Images[index] = blob;
+}
+
+function releaseImageBlobUrls() {
+    for (const url of imageBlobUrls.values()) {
+        URL.revokeObjectURL(url);
+    }
+    imageBlobUrls.clear();
+}
+
 /* promise that returns once the selected image has loaded for scaling.  Thats all this function
  is used for.  Set visibility to hidden to avoid flicker during load
 */
-async function getsize(Base64Image){
+async function getsize(imageBlobOrUrl){
    return new Promise(function(resolve,reject){
        var img = new Image();
-       img.src = Base64Image;
+       const imageUrl = imageBlobOrUrl instanceof Blob
+           ? getBlobUrl(imageBlobOrUrl)
+           : imageBlobOrUrl;
+       img.src = imageUrl;
        img.style.visibility = 'hidden';
-       
+
        img.onload = function () {
            resolve(img);
-       }      
+       };
+       img.onerror = reject;
    });
 }
 
 
 function getImagetoSee(){
     let ItemSrc = null;
-    let ItemInfo = {imagePath:'', imageBase64:'', Index:null}; 
+    let ItemInfo = {imagePath:'', imageBlob:null, Index:null}; 
     
     if (!imagetosee.includes("video")){  // its an image  imgatetosee is a global defined in display.html
         ItemSrc = (!fadetoggle) ? document.getElementById('mainimg').src : document.getElementById('mainimg2').src;        
@@ -386,7 +414,7 @@ function getImagetoSee(){
         ItemSrc =  document.getElementById("playvideo").src;
     }
 
-    ItemInfo = {imagePath:LoadedImagesData[imgctr-1].FilePath, imageBase64:g_Base64Images[imgctr-1], Index:imgctr-1};
+    ItemInfo = {imagePath:LoadedImagesData[imgctr-1].FilePath, imageBlob:g_Images[imgctr-1], Index:imgctr-1};
     
     return ItemInfo;    
 }
@@ -398,7 +426,7 @@ async function rotateMP4(ItemInfo) {
     }
 
     
-    Videosrc = ItemInfo.imageBase64;
+    Videosrc = getBlobUrl(ItemInfo.imageBlob);
     videoPath = ItemInfo.imagePath;
     index = ItemInfo.Index;
   
@@ -434,16 +462,17 @@ async function rotateMP4(ItemInfo) {
         try{
             mimeType = 'video/mp4';
             data = fs.readFileSync(videoPath);
-            const imagetosee = `data:${mimeType};base64,${data.toString('base64')}`;            
+            const rotatedVideoBlob = new Blob([data], { type: 'video/mp4' });
 
             LoadedImagesData.forEach((value, index) => {
                 if (value.FilePath == videoPath){                
-                    g_Base64Images[index] = imagetosee; // or imagetosee again
+                    replaceImageBlob(index, rotatedVideoBlob);
                 }
             });
             
-            SetVideoScaleStyleAttr(imagetosee);
-            document.getElementById("playvideo").setAttribute("src", imagetosee);   
+            const rotatedVideoUrl = getBlobUrl(rotatedVideoBlob);
+            SetVideoScaleStyleAttr(rotatedVideoBlob);
+            document.getElementById("playvideo").setAttribute("src", rotatedVideoUrl);   
             document.getElementById("playvideo").play().catch(err => {
                 if (err.name !== "AbortError") {
                 // do nothing, ignore error and continue
@@ -485,7 +514,7 @@ async function rotateImage(rotationValue, ItemInfo){
     var base64Data = null;
     const validExts = ["png", "jpg", "jpeg"];
 
-    Imagesrc = ItemInfo.imageBase64;
+    Imagesrc = getBlobUrl(ItemInfo.imageBlob);
     ImagePath = ItemInfo.imagePath;
     ImageIndex = ItemInfo.Index;
     
@@ -563,8 +592,7 @@ async function rotateImage(rotationValue, ItemInfo){
             setTimeout(function(){    
                 SetUIimageorData('#noRotation', true,null);            
             },1500);     
-            return;
-        break;  // ignored to due return value above;
+        return;        
     }
     
     try{
@@ -576,7 +604,7 @@ async function rotateImage(rotationValue, ItemInfo){
         
         LoadedImagesData.forEach((value, index) => {
             if (value.FilePath == ImagePath){                
-                g_Base64Images[index] = imagetosee; // or imagetosee again
+                replaceImageBlob(index, new Blob([filedata], { type: mimeType }));
             }
         })
 
@@ -610,7 +638,7 @@ async function rotateImage(rotationValue, ItemInfo){
 
 
 // scale the image if needed and setup html attributes
-async function SetImageScaleStyleAttr(Base64Image, fade){    
+async function SetImageScaleStyleAttr(imageBlob, fade){    
     //determine which image is fading in and out
     var whichmain;
     var whichbg;
@@ -624,7 +652,7 @@ async function SetImageScaleStyleAttr(Base64Image, fade){
 
     try {
         // Wait until getsize resolves
-        const img = await getsize(Base64Image);
+        const img = await getsize(imageBlob);
 
         // Check scaling in case the image needs to be scaled up or down to fit the window
         let ScaleSmallPhoto = 1.0;
@@ -637,20 +665,19 @@ async function SetImageScaleStyleAttr(Base64Image, fade){
         document.querySelector(whichbg).setAttribute("style", "transform: translate(0%, 0%) rotate(0deg) scale(1); max-width: none");
 
     } catch (err) {            
-        // Handle the error if getsize fails        
-        //writeRotateDeleteError(null, null, 'cannot resize image ',LoadedImagesData[imgctr].FilePath);
+        // Handle the error if getsize fails                
         document.querySelector(whichmain).setAttribute("style", "transform: translate(-50%, -50%) rotate(0deg) scale(1); max-width: none");
         document.querySelector(whichbg).setAttribute("style", "transform: translate(0%, 0%) rotate(0deg) scale(1); max-width: none");
     }       
 }
 
 //scale video element if needed and setup html attributes
-function SetVideoScaleStyleAttr(base64Video) {
+function SetVideoScaleStyleAttr(videoBlob) {
     const videoElement = document.getElementById('playvideo');    
     
-    // Create a temporary video element to get the video dimensions from the Base64 data
+    // Create a temporary video element to get the video dimensions from the Blob
     const tempVideo = document.createElement('video');
-    tempVideo.src = base64Video;
+    tempVideo.src = getBlobUrl(videoBlob);
         
     try{
         // Wait for the metadata to be loaded and extract the dimensions    

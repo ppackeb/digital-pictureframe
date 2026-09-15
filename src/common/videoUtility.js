@@ -4,10 +4,10 @@
 
 this fuction returns an image from the video
 
-This getVideoImage(path, secs, callback) function takes three arguments:
+This getVideoImage(blob, secs, callback) function takes three arguments:
 
-path {string}:
-The path to the video. In the case that you are using this code in a web page this must be a video within the same domain.
+blob {Blob}:
+The video Blob from which to capture a frame.
 
 secs {number | function(duration): number}:
 If this is a non-negative number this will indicate the time of the frame to capture in seconds. 
@@ -21,12 +21,12 @@ The third argument will either be a seeked event or an error event.
 */
 
 
-function getVideoImage(base64Data, secs, callback) {
+function getVideoImage(blob, secs, callback) {
   var me = this;
   var video = document.createElement('video');
+  var blobUrl = URL.createObjectURL(blob);
   
-  // Prepend base64 data with the MIME type
-  video.src = base64Data;
+  video.src = blobUrl;
 
   video.onloadedmetadata = function() {
     if (typeof secs === 'function') {
@@ -50,11 +50,13 @@ function getVideoImage(base64Data, secs, callback) {
     
     var img = new Image();
     img.src = canvas.toDataURL();
-    
+
+    URL.revokeObjectURL(blobUrl);
     callback.call(me, img, e);
   };
   
   video.onerror = function(e) {
+    URL.revokeObjectURL(blobUrl);
     callback.call(me, undefined, e);
   };
 }
