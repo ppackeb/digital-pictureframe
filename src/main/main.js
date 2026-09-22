@@ -12,7 +12,7 @@ const { exec } = require('child_process');
 const { execFile } = require('child_process');   
 const { ExifTool } = require('exiftool-vendored');  //the curly brackets { ExifTool } destructures the ExifTool property from the module's exports, so you can use it directly in your code
 const exiftool = new ExifTool();
-
+//const { exiftool } = require('exiftool-vendored');
 const devtools = false; // enables dev tool windows
 
 // Keep a global reference of the window object, if you don't, the window will
@@ -325,78 +325,65 @@ async function WriteMetaData(data){
   // Check if extension is jpg or jpeg before writing EXIF
   const ext = data.ImagePath.split('.').pop().toLowerCase();
   try{
-    if (ext === 'jpg' || ext === 'jpeg') {
-      await exiftool.write(data.ImagePath, { UserComment: updatedComment }, ["-overwrite_original"]);
+    if (ext === 'jpg' || ext === 'jpeg') {      
+      await exiftool.write(data.ImagePath, { UserComment: updatedComment }, { writeArgs: ["-overwrite_original"] });
     } else {                        
       await addCommentToMP4(data.ImagePath, updatedComment);              
     }
-    ipc_displayPOST({ command: 'updateLoadedItemMetaData', data: data }); // refresh metadata in display window
+    ipc_displayPOST({ command: 'updateLoadedItemMetaData', data: data, error:false }); // refresh metadata in display window
   } catch (error){
+    ipc_displayPOST({ command: 'updateLoadedItemMetaData', data: data, error:true }); // refresh metadata in display window
     DB.writeRotateDeleteError(null, null, 'Error writing EXIF data:', error);      
   }
 }
 
 
-async function addCommentToMP4(filePath, commentString) {    
-  return new Promise((resolve, reject) => {
-      const tempFilePath = filePath.replace(/\.mp4$/, '_temp.mp4');
-      const args = [
+
+async function addCommentToMP4(filePath, commentString) {
+    const ffmpegPath = path.join(__dirname, '..', 'renderer', 'assets', 'ffmpeg', 'ffmpeg.exe');
+    const tempFilePath = filePath.replace(/\.mp4$/i, '_temp.mp4');
+    const args = [
+        '-y',
         '-i', filePath,
         '-metadata', `comment=${commentString}`,
         '-c', 'copy',
         tempFilePath
-      ];
-      const ffmpegPath = path.join(__dirname, '..', 'renderer', 'assets', 'ffmpeg', 'ffmpeg.exe');
-      const ffmpegProcess = execFile(ffmpegPath, args, (error, stdout, stderr) => {
-        if (error) {            
-          cleanupTempFile(tempFilePath); // Ensure temp file is cleaned up   
-          DB.writeRotateDeleteError(null, null, `Failed to add comment to MP4: ${stderr}`);         
-          reject();
-          return;
-        }
-      });
+    ];
 
-      // Wait for the ffmpeg process to fully close
-    ffmpegProcess.on('close', (code) => {
-      if (code !== 0) {          
-        DB.writeRotateDeleteError(null, null, `FFmpeg process exited with code ${code}`);
-        cleanupTempFile(tempFilePath); // Ensure temp file is cleaned up
-        reject();
-        return;
-      }
+    try {
+        await new Promise((resolve, reject) => {
+            const ffmpegProcess = execFile(ffmpegPath, args);
 
-        // Proceed with file operations after ffmpeg has completed
-      fs.unlink(filePath, (unlinkError) => {
-        if (unlinkError) {
-          DB.writeRotateDeleteError(null, null, 'Error deleting original file:', unlinkError, 'cannot replace file');            
-          // Cleanup the temp file and resolve without deleting filePath
-          cleanupTempFile(tempFilePath);
-          reject();
-          return;
-        }
+            ffmpegProcess.once('error', (error) => {
+                reject(new Error(`Failed to start FFmpeg: ${error.message}`));
+            });
 
-        fs.rename(tempFilePath, filePath, (renameError) => {
-          if (renameError) {
-            DB.writeRotateDeleteError(null, null, 'Error replacing original file:', renameError);              
-            cleanupTempFile(tempFilePath); // Ensure temp file is cleaned up
-            reject();
-            return;
-          }                                
-          resolve();
+            ffmpegProcess.once('close', (code) => {
+                if (code === 0) {
+                    resolve();
+                } else {
+                    reject(new Error(`FFmpeg process exited with code ${code}`));
+                }
+            });
         });
-      });
-    });
-  });
+
+        await fs.promises.rm(filePath, { force: true });
+        await fs.promises.rename(tempFilePath, filePath);
+    } catch (error) {
+        errormsg = `Error adding comment to MP4: ${error.message}`;        
+        await cleanupTempFile(tempFilePath);        
+        DB.writeRotateDeleteError(null, null, errormsg); // located in DBFunctions.js
+    }
 }
 
-function cleanupTempFile(tempFilePath) {
-  fs.unlink(tempFilePath, (err) => {
-    if (err) {
-      errormsg = `Failed to clean up temp file (${tempFilePath}):`, err.message
+
+async function cleanupTempFile(tempFilePath) {
+    try {
+        await fs.promises.rm(tempFilePath, { force: true });
+    } catch (error) {
+      let errormsg = `Failed to clean up temp file (${tempFilePath}): ${error.message}`;
       DB.writeRotateDeleteError(null, null, errormsg); // located in DBFunctions.js
-      
     }
-  });
 }
 
 async function NewPlaylist(data){

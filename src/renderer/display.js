@@ -207,15 +207,20 @@ async function addLoadedImagesData(filePath) {
     });
 }
 
-async function MP4GetVideoData(videoPath) {  
-    // true/false for hiddenFlag and text or null for imageComment 
-    let hiddenflag = false; // Initialize hidden flag
-    let usercomments = null; // Initialize user comments    
-    let ffmpegPath = path.join(__dirname, '..', 'renderer', 'assets', 'ffmpeg', 'ffmpeg.exe');    
-    // Use ffmpeg to read metadata
-    const args = ['-i', videoPath, '-f', 'ffmetadata', '-'];
+
+async function MP4GetVideoData(filePath) {
+    const EMPTY_METADATA_RESULT = () => ({ comment: null, hiddenCheckbox: false, errorMsg: '' });
+    const normalizeMetadataComment = (value = '') => {
+        const normalizedValue = value.replace(/\\/g, '').replace(/\n/g, '<br>');
+        return normalizedValue === '' ? null : normalizedValue;
+    };
+    const isHiddenFlagged = (value = '') => /^Hiddenflag=Hidden/i.test(value);
+    const stripHiddenFlagPrefix = (value = '') => value.slice('Hiddenflag=Hidden'.length).trimStart();
+    const result = EMPTY_METADATA_RESULT();
+    const args = ['-i', filePath, '-f', 'ffmetadata', '-'];
+    let ffmpegPath = path.join(__dirname, '..', 'renderer', 'assets', 'ffmpeg', 'ffmpeg.exe');  
     try {
-        const stdout = await new Promise((resolve, reject) => {                        
+        const stdout = await new Promise((resolve, reject) => {
             execFile(ffmpegPath, args, (error, stdout, stderr) => {
                 if (error) {
                     reject(`Error reading metadata: ${stderr}`);
@@ -225,75 +230,25 @@ async function MP4GetVideoData(videoPath) {
             });
         });
 
-        // Extract the comment from the metadata
         const metadata = stdout.toString();
-
-        const commentIndex = metadata.indexOf('comment=');
-        if (commentIndex !== -1) {
-            // Extract everything after 'comment='
-            let comment = metadata.slice(commentIndex + 'comment='.length).trim();
-
-            // replace <br> with \n
-            comment = comment.replace(/<br>/g, '\n');
-
-            // Remove "encoder" and anything after it if it exists in the comment
-            if (comment.includes('encoder')) {
-                comment = comment.slice(0, comment.indexOf('encoder')).trim();
+        const commentMatch = metadata.match(/(?:^|\r?\n)comment=([\s\S]*?)(?=\r?\n[A-Za-z0-9_.-]+=|$)/);
+        if (commentMatch) {
+            let comment = commentMatch[1];
+            comment = normalizeMetadataComment(comment);
+            if (isHiddenFlagged(comment)) {
+                comment = stripHiddenFlagPrefix(comment);
+                comment = normalizeMetadataComment(comment);
+                result.hiddenCheckbox = true;
             }
-            // clean up escapte characters
-            comment = comment.replace(/\\/g, '');
-
-            // Handle "Hiddenflag=Hidden" logic
-            if (comment.startsWith('Hiddenflag=Hidden')) {                
-                hiddenflag = true; // Set hidden flag to true
-                comment = comment.slice('Hiddenflag=Hidden'.length).trimStart();              
-            }
-            if (comment.length > 0) {
-                // Store the comment in the ImageComment table
-                usercomments = comment; // Set user comments to the stripped comment                
-            }          
-        }        
-    } catch (error) {
-        const errortext = `Error handling Video Data at display.js: ${videoPath}`;
-        //writeRotateDeleteError(null, null, errortext);    
-        hiddenflag = false; // Set hidden flag to false 
-        usercomments = null; // Set user comments to null      
-    }
-    return {hidden: hiddenflag, comment: usercomments};    
-}
-
-async function EXIFGetImageData(imagePath) {   
-    // true/false for hiddenFlag and text or null for imageComment 
-    let hiddenflag = false; // Initialize hidden flag
-    let usercomments = null; // Initialize user comments
-    try {
-        const metadata = await exiftool.read(imagePath);
-
-        if (metadata.UserComment) {        
-            if (metadata.UserComment.includes("Hiddenflag=Hidden")) {
-
-                hiddenflag = true; // Set hidden flag to true
-
-                // Remove "Hiddenflag=Hidden" from the comment
-                const strippedComment = metadata.UserComment.replace("Hiddenflag=Hidden", "").trim();
-
-                // If there is any remaining text, store it in the ImageComments table
-                if (strippedComment) {                    
-                    usercomments = strippedComment; // Set user comments to the stripped comment
-                }
-            } else {
-                hiddenflag = false; // Set hidden flag to false
-                usercomments = metadata.UserComment; // Set user comments to the full UserComment text
-            }        
+            result.comment = comment;
         }
-    } catch (err) {
-       // const errortext = `Error reading EXIF at display.js: ${imagePath}`;
-        //writeRotateDeleteError(null, null, errortext);
-        hiddenflag = false; // Set hidden flag to false
-        usercomments = null; // Set user comments to null    
-    }
-    return {hidden: hiddenflag, comment: usercomments};
+    } catch (error) {
+        result.errorMsg = error;
+    }    
+    return {hidden: result.hiddenCheckbox, comment: result.comment};   
+
 }
+
 
 let copying = false;
 async function copy_images(){
@@ -368,7 +323,7 @@ function getBlobUrl(blob) {
     return imageBlobUrls.get(blob);
 }
 
-function replaceImageBlob(index, blob) {
+function replaceImageBlob(index, blob) {    
     const previousBlob = g_Images[index];
     if (previousBlob && imageBlobUrls.has(previousBlob)) {
         URL.revokeObjectURL(imageBlobUrls.get(previousBlob));
@@ -377,7 +332,7 @@ function replaceImageBlob(index, blob) {
     g_Images[index] = blob;
 }
 
-function releaseImageBlobUrls() {
+function releaseImageBlobUrls() {    
     for (const url of imageBlobUrls.values()) {
         URL.revokeObjectURL(url);
     }
@@ -665,7 +620,8 @@ async function SetImageScaleStyleAttr(imageBlob, fade){
         document.querySelector(whichbg).setAttribute("style", "transform: translate(0%, 0%) rotate(0deg) scale(1); max-width: none");
 
     } catch (err) {            
-        // Handle the error if getsize fails                
+        // Handle the error if getsize fails        
+        //writeRotateDeleteError(null, null, 'cannot resize image ',LoadedImagesData[imgctr].FilePath);
         document.querySelector(whichmain).setAttribute("style", "transform: translate(-50%, -50%) rotate(0deg) scale(1); max-width: none");
         document.querySelector(whichbg).setAttribute("style", "transform: translate(0%, 0%) rotate(0deg) scale(1); max-width: none");
     }       

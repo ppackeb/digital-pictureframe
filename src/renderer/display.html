@@ -293,8 +293,19 @@
       data: null
     };     
     switch (AppCommand){
-      case 'updateLoadedItemMetaData':         
-         updateLoadedItemMetaData(AppData);
+      case 'updateLoadedItemMetaData':    
+         if (AppData.error){
+            SetUIimageorData('#noRotation', false, './assets/images/badmetadatasave.png');            
+            setTimeout(function(){    
+               SetUIimageorData('#noRotation', true,null);            
+            },1500);              
+         }else{
+            updateLoadedItemMetaData(AppData);
+            SetUIimageorData('#noRotation', false, './assets/images/goodmetadatasave.png');            
+            setTimeout(function(){    
+               SetUIimageorData('#noRotation', true,null);            
+            },1500);              
+         }         
       break;
       case 'volume':                    
         videoVolume = AppData;

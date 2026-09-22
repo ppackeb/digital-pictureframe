@@ -25,38 +25,84 @@ function getVideoImage(blob, secs, callback) {
   var me = this;
   var video = document.createElement('video');
   var blobUrl = URL.createObjectURL(blob);
-  
+  var finished = false;
+
+  function finish(event, img) {
+    if (finished) return;
+    finished = true;
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+    try {
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      // ignore cleanup errors; blob URL is already invalid or already revoked
+    }
+    callback.call(me, img, event);
+  }
+
   video.src = blobUrl;
 
   video.onloadedmetadata = function() {
-    if (typeof secs === 'function') {
-      secs = secs(this.duration);
+    try {
+      if (typeof secs === 'function') {
+        secs = secs(this.duration);
+      }
+      this.currentTime = Math.min(Math.max(0, (secs < 0 ? this.duration : 0) + secs), this.duration);
+    } catch (err) {
+      finish({ type: 'error', error: err }, undefined);
     }
-    this.currentTime = Math.min(Math.max(0, (secs < 0 ? this.duration : 0) + secs), this.duration);
   };
   
-  video.onseeked = function(e) {
-    var canvas = document.createElement('canvas');
-    var ctx = canvas.getContext('2d');
-    canvas.height = video.videoHeight;
-    canvas.width = video.videoWidth;
-    
-    if (canvas.height > canvas.width) {
-      canvas.height = video.videoWidth;
-      canvas.width = video.videoHeight;
-    }
-    
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    var img = new Image();
-    img.src = canvas.toDataURL();
+  video.onseeked = async function(e) {
+    try {
+      var canvas = document.createElement('canvas');
+      var ctx = canvas.getContext('2d');
+      var width = video.videoWidth;
+      var height = video.videoHeight;
+      var maxDimension = 1280;
+      var scale = Math.min(1, maxDimension / Math.max(width, height));
 
-    URL.revokeObjectURL(blobUrl);
-    callback.call(me, img, e);
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+
+      if (height > width) {
+        canvas.height = Math.round(width * scale);
+        canvas.width = Math.round(height * scale);
+      }
+
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      var imageBlob = await new Promise(function(resolve, reject) {
+        canvas.toBlob(function(blob) {
+          if (!blob) {
+            reject(new Error('Could not encode video frame'));
+            return;
+          }
+          resolve(blob);
+        });
+      });
+
+      var dataUrl = await new Promise(function(resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function() {
+          resolve(reader.result);
+        };
+        reader.onerror = function(error) {
+          reject(error || new Error('Could not read image blob'));
+        };
+        reader.readAsDataURL(imageBlob);
+      });
+
+      var img = new Image();
+      img.src = dataUrl;
+      finish(e, img);
+    } catch (err) {
+      finish({ type: 'error', error: err }, undefined);
+    }
   };
   
   video.onerror = function(e) {
-    URL.revokeObjectURL(blobUrl);
-    callback.call(me, undefined, e);
+    finish(e, undefined);
   };
 }
