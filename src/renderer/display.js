@@ -250,6 +250,41 @@ async function MP4GetVideoData(filePath) {
 }
 
 
+
+async function EXIFGetImageData(imagePath) {   
+    // true/false for hiddenFlag and text or null for imageComment 
+    let hiddenflag = false; // Initialize hidden flag
+    let usercomments = null; // Initialize user comments
+    try {
+        const metadata = await exiftool.read(imagePath);
+
+        if (metadata.UserComment) {        
+            if (metadata.UserComment.includes("Hiddenflag=Hidden")) {
+
+                hiddenflag = true; // Set hidden flag to true
+
+                // Remove "Hiddenflag=Hidden" from the comment
+                const strippedComment = metadata.UserComment.replace("Hiddenflag=Hidden", "").trim();
+
+                // If there is any remaining text, store it in the ImageComments table
+                if (strippedComment) {                    
+                    usercomments = strippedComment; // Set user comments to the stripped comment
+                }
+            } else {
+                hiddenflag = false; // Set hidden flag to false
+                usercomments = metadata.UserComment; // Set user comments to the full UserComment text
+            }        
+        }
+    } catch (err) {
+        const errortext = `Error reading EXIF at display.js: ${imagePath}`;
+        //writeRotateDeleteError(null, null, errortext);
+        hiddenflag = false; // Set hidden flag to false
+        usercomments = null; // Set user comments to null    
+    }
+    return {hidden: hiddenflag, comment: usercomments};
+}
+
+
 let copying = false;
 async function copy_images(){
     
