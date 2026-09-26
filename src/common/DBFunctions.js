@@ -92,8 +92,8 @@ async function rebuildall() {
     */
     try {
         var PlaylistTables = readPlaylistPaths();
-        for (const [TableName, dirPaths] of Object.entries(PlaylistTables)) {
-            errorOccured = await CreateAddPlaylistTable(TableName, dirPaths, true)
+        for (const [TableName, dirPaths] of Object.entries(PlaylistTables)) {    
+            errorOccured = await CreateAddPlaylistTable(TableName, dirPaths, true)     
         }
     } finally {
         oldSelections = null;

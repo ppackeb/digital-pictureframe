@@ -707,9 +707,9 @@ function SetVideoScaleStyleAttr(videoBlob) {
 
                 videoElement.setAttribute('style', `
                     width: ${width}px;
-                    height: ${height}px;
+                    height: ${height}px;  
                     position: absolute;
-                    z-index: 5;
+                    z-index: 5;                
                 `);
             } finally {
                 cleanupTempVideo();
