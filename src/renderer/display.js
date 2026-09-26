@@ -563,7 +563,11 @@ async function rotateImage(rotationValue, ItemInfo){
     const blob = await response.blob();
     const bitmap = await createImageBitmap(blob);
 
-    ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
+    try {
+        ctx.drawImage(bitmap, -bitmap.width / 2, -bitmap.height / 2);
+    } finally {
+        bitmap.close();
+    }
 
 
     switch (fileExt){
@@ -669,38 +673,49 @@ function SetVideoScaleStyleAttr(videoBlob) {
     // Create a temporary video element to get the video dimensions from the Blob
     const tempVideo = document.createElement('video');
     tempVideo.src = getBlobUrl(videoBlob);
+    const cleanupTempVideo = () => {
+        tempVideo.onloadedmetadata = null;
+        tempVideo.onerror = null;
+        tempVideo.pause();
+        tempVideo.removeAttribute('src');
+        tempVideo.load();
+    };
         
     try{
         // Wait for the metadata to be loaded and extract the dimensions    
         tempVideo.onloadedmetadata = function () {
-            const videoWidth = tempVideo.videoWidth;
-            const videoHeight = tempVideo.videoHeight;
+            try {
+                const videoWidth = tempVideo.videoWidth;
+                const videoHeight = tempVideo.videoHeight;
         
-            // Calculate the aspect ratio of the video
-            const aspectRatio = videoWidth / videoHeight;
+                // Calculate the aspect ratio of the video
+                const aspectRatio = videoWidth / videoHeight;
         
-            // Get the maximum dimensions (90% of the viewport size)
-            const maxWidth = window.innerWidth * 0.99; // 99% of the viewport width
-            const maxHeight = window.innerHeight * 0.99; // 98% of the viewport height
+                // Get the maximum dimensions (90% of the viewport size)
+                const maxWidth = window.innerWidth * 0.99; // 99% of the viewport width
+                const maxHeight = window.innerHeight * 0.99; // 98% of the viewport height
         
-            // Calculate the width and height while maintaining the aspect ratio
-            let width, height;
-            if (maxWidth / maxHeight > aspectRatio) {
-            width = maxHeight * aspectRatio;
-            height = maxHeight;
-            } else {
-            width = maxWidth;
-            height = maxWidth / aspectRatio;
-            }
+                // Calculate the width and height while maintaining the aspect ratio
+                let width, height;
+                if (maxWidth / maxHeight > aspectRatio) {
+                width = maxHeight * aspectRatio;
+                height = maxHeight;
+                } else {
+                width = maxWidth;
+                height = maxWidth / aspectRatio;
+                }
 
-            videoElement.setAttribute('style', `
-                width: ${width}px;
-                height: ${height}px;  
-                position: absolute;
-                z-index: 5;                
-            `);
-      
+                videoElement.setAttribute('style', `
+                    width: ${width}px;
+                    height: ${height}px;
+                    position: absolute;
+                    z-index: 5;
+                `);
+            } finally {
+                cleanupTempVideo();
+            }
         }
+        tempVideo.onerror = cleanupTempVideo;
     }catch (err){ // incase video file is bad and cant load metadata
         //writeRotateDeleteError(null, null, 'cannot resize video ',LoadedImages[imgctr]);
         writeRotateDeleteError(null, null, 'cannot resize video ',LoadedImagesData[imgctr].FilePath);

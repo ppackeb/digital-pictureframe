@@ -20,6 +20,9 @@ if (process.env.NODE_ENV === 'development'){
 // get instances of db and main process electron references
 function initDBFunctions({ dbInstance, electron }) {
     // set internal handles used by functions above (assumes code references these variable names)
+    if (db && db !== dbInstance && db.open) {
+        db.close();
+    }
     db = dbInstance;
     electronRefs = electron;  // now you can use electronRefs.ipcMain, etc.
 }
@@ -87,10 +90,14 @@ async function rebuildall() {
         electronRefs.ipcMain.emit('popup','main.js','Rebuilding Index');          
     }
     */
-    var PlaylistTables = readPlaylistPaths();
-    for (const [TableName, dirPaths] of Object.entries(PlaylistTables)) {    
-        errorOccured = await CreateAddPlaylistTable(TableName, dirPaths, true)     
-    }  
+    try {
+        var PlaylistTables = readPlaylistPaths();
+        for (const [TableName, dirPaths] of Object.entries(PlaylistTables)) {
+            errorOccured = await CreateAddPlaylistTable(TableName, dirPaths, true)
+        }
+    } finally {
+        oldSelections = null;
+    }
     
     payload = {command: 'ClosePopup', data: null};
     if (process && process.type === 'browser') {
@@ -207,6 +214,7 @@ async function CreateAddPlaylistTable(PlaylistName, StartingPathArray, FirstRun,
         } else {
             errorOccurred = false;
         }
+        oldSelections = null;
     }    
     return errorOccurred;
 }

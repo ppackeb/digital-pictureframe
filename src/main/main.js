@@ -99,9 +99,48 @@ router.get('/:page?', (req, res, next) => {
   res.sendFile(path.join(__dirname, filePath));
 })
 
-// A map to store active response objects, keyed by a unique request ID.
-// This prevents multiple concurrent requests from overwriting each other.
+const REQUEST_TIMEOUT_MS = 5 * 60 * 1000;
+const IPC_REPLY_TIMEOUT_MS = 5 * 60 * 1000;
+
+// Store the response and its cleanup handles together so abandoned requests
+// cannot keep HTTP responses or IPC listeners alive indefinitely.
 const activeRequests = new Map();
+
+function removeActiveRequest(requestId) {
+  const request = activeRequests.get(requestId);
+  if (!request) {
+    return;
+  }
+
+  clearTimeout(request.timeout);
+  request.cleanupIpc?.();
+  activeRequests.delete(requestId);
+}
+
+function addActiveRequest(requestId, res) {
+  const request = {
+    res,
+    timeout: setTimeout(() => {
+      const currentRequest = activeRequests.get(requestId);
+      if (!currentRequest || currentRequest.res !== res) {
+        return;
+      }
+
+      removeActiveRequest(requestId);
+      if (!res.writableEnded) {
+        res.status(504).json({ error: 'Request timed out' });
+      }
+    }, REQUEST_TIMEOUT_MS),
+    cleanupIpc: null
+  };
+
+  activeRequests.set(requestId, request);
+  res.once('close', () => {
+    if (!res.writableEnded && activeRequests.get(requestId)?.res === res) {
+      removeActiveRequest(requestId);
+    }
+  });
+}
 
 let ipc_index =[];
 let ipc_main = ["app_readDB","app_writeDB","refresh","ImageDir","DeletePlaylist","NewPlaylist","WriteMetaData","readNotifications","clearNotifications","rebuildDatabase","readQRCode"];
@@ -119,7 +158,7 @@ router.post('/app_sendrequest', async (req, res) => {
   
   // Store the response object (res) using the request_id as the key.
   if (request_id) {
-      activeRequests.set(request_id, res);
+      addActiveRequest(request_id, res);
   } else {
       // Handle case where request_id is missing, e.g., send an error response.
       // do nothing for now
@@ -152,17 +191,35 @@ function ipc_displayPOST(payload) {
     return;
   }    
 
-  return new Promise((resolve, reject) => {    
-    // Listen for one reply only (auto-cleanup)
-    ipcMain.once(`${channel}-reply-${request_id}`, (event, response) => {
-  
-      // resolve the response
-      resolve(response);      
-      // Emit after promise has resolved (next tick)      
-      queueMicrotask(() => {                        
+  return new Promise((resolve) => {
+    const replyChannel = `${channel}-reply-${request_id}`;
+    let replyTimeout;
+    const cleanup = () => {
+      clearTimeout(replyTimeout);
+      ipcMain.removeListener(replyChannel, onReply);
+      const request = activeRequests.get(request_id);
+      if (request) {
+        request.cleanupIpc = null;
+      }
+    };
+    const onReply = (event, response) => {
+      cleanup();
+      resolve(response);
+      queueMicrotask(() => {
         ipcMain.emit('app_sendrequest_response', null, { request_id, responseData: response });
       });
-    });
+    };
+
+    ipcMain.on(replyChannel, onReply);
+    replyTimeout = setTimeout(() => {
+      cleanup();
+      resolve(null);
+    }, IPC_REPLY_TIMEOUT_MS);
+
+    const request = activeRequests.get(request_id);
+    if (request) {
+      request.cleanupIpc = cleanup;
+    }
 
     // Send the message with requestId and data
     win.webContents.send(channel, payload);
@@ -181,11 +238,23 @@ function ipc_indexPOST(payload) {
 
   payload.request_id = request_id; // add request_id to response object
   
-  return new Promise((resolve, reject) => {
-    // Listen for one reply only (auto-cleanup)
-    ipcMain.once(`${channel}-reply-${request_id}`, (event, response) => {        
-      resolve(response);// resolve the response
-    });
+  return new Promise((resolve) => {
+    const replyChannel = `${channel}-reply-${request_id}`;
+    let replyTimeout;
+    const cleanup = () => {
+      clearTimeout(replyTimeout);
+      ipcMain.removeListener(replyChannel, onReply);
+    };
+    const onReply = (event, response) => {
+      cleanup();
+      resolve(response);
+    };
+
+    ipcMain.on(replyChannel, onReply);
+    replyTimeout = setTimeout(() => {
+      cleanup();
+      resolve(null);
+    }, IPC_REPLY_TIMEOUT_MS);
 
     // Send the message with requestId and data
     win.webContents.send(channel, payload);
@@ -300,13 +369,15 @@ ipcMain.on('app_sendrequest_response', (event, arg) => { // event is not needed 
     const { request_id, responseData } = arg;
     
     // Retrieve the correct response object using the request_id.
-    const res = activeRequests.get(request_id);
+    const request = activeRequests.get(request_id);
 
-    if (res) {
+    if (request) {
         // Send the response back to the original client.
-        res.json(responseData);
+        if (!request.res.writableEnded) {
+          request.res.json(responseData);
+        }
         // Clean up: remove the response object from the map to free up memory.
-        activeRequests.delete(request_id);
+        removeActiveRequest(request_id);
     } else {
         // Log an error if the request ID isn't found (shouldn't happen with this setup).
         //console.error('Response object not found for request_id:', request_id);

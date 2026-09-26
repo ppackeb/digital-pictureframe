@@ -8,6 +8,14 @@ const sherpa_onnx = require('sherpa-onnx-node');
 let recognizer = null;
 let stream = null;
 let lastText = '';
+let audioContext = null;
+let mediaStream = null;
+let audioSource = null;
+let audioWorkletNode = null;
+let detectionStartPromise = null;
+let detectionActive = false;
+let detectionGeneration = 0;
+let microphoneResetTimer = null;
 
 let wakeActive = false;     
 let intentTimer = null;     
@@ -26,8 +34,10 @@ function resetWakeIntent() {
   if (intentTimer) clearTimeout(intentTimer);
   intentTimer = null;  
   SetUIimageorData('#pulse-circle', true, null);   
-  setTimeout(() =>{
+  if (microphoneResetTimer) clearTimeout(microphoneResetTimer);
+  microphoneResetTimer = setTimeout(() =>{
     SetUIimageorData('#microphone', true, null);
+    microphoneResetTimer = null;
   } , 1500);  
 }
 
@@ -155,7 +165,69 @@ registerProcessor('stream-processor', StreamProcessor);
 // ----------------------------------------------
 // Start Detection
 // ----------------------------------------------
+function cleanupDetection() {
+  detectionActive = false;
+  detectionGeneration++;
+
+  if (intentTimer) clearTimeout(intentTimer);
+  intentTimer = null;
+  if (microphoneResetTimer) clearTimeout(microphoneResetTimer);
+  microphoneResetTimer = null;
+
+  if (audioWorkletNode) {
+    audioWorkletNode.port.onmessage = null;
+    try {
+      audioWorkletNode.disconnect();
+    } catch (err) {
+    }
+    audioWorkletNode = null;
+  }
+  if (audioSource) {
+    try {
+      audioSource.disconnect();
+    } catch (err) {
+    }
+    audioSource = null;
+  }
+  if (mediaStream) {
+    mediaStream.getTracks().forEach(track => track.stop());
+    mediaStream = null;
+  }
+  if (audioContext) {
+    audioContext.close().catch(() => {});
+    audioContext = null;
+  }
+
+  if (stream && typeof stream.inputFinished === 'function') {
+    try {
+      stream.inputFinished();
+    } catch (err) {
+    }
+  }
+  stream = null;
+  recognizer = null;
+  wakeActive = false;
+  lastText = '';
+}
+
 async function startDetection() {
+  if (detectionStartPromise) {
+    return detectionStartPromise;
+  }
+  if (detectionActive) {
+    return;
+  }
+
+  detectionActive = true;
+  const startGeneration = detectionGeneration;
+  detectionStartPromise = startDetectionInternal(startGeneration)
+    .finally(() => {
+      detectionStartPromise = null;
+    });
+  return detectionStartPromise;
+}
+
+async function startDetectionInternal(startGeneration) {
 
   let blobUrl;
 
@@ -170,11 +242,20 @@ async function startDetection() {
     blobUrl = URL.createObjectURL(blob);
     await audioContext.audioWorklet.addModule(blobUrl);
 
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const source = audioContext.createMediaStreamSource(mediaStream);
-    const audioWorkletNode = new AudioWorkletNode(audioContext, 'stream-processor');
+    const newMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    if (!detectionActive || startGeneration !== detectionGeneration) {
+      newMediaStream.getTracks().forEach(track => track.stop());
+      return;
+    }
+
+    mediaStream = newMediaStream;
+    audioSource = audioContext.createMediaStreamSource(mediaStream);
+    audioWorkletNode = new AudioWorkletNode(audioContext, 'stream-processor');
 
     audioWorkletNode.port.onmessage = (event) => {
+      if (!detectionActive || !recognizer || !stream) {
+        return;
+      }
       const audioData = event.data;
 
       stream.acceptWaveform({ sampleRate: 16000, samples: audioData });
@@ -212,9 +293,10 @@ async function startDetection() {
         recognizer.reset(stream);
       }
     };
-    source.connect(audioWorkletNode);
+    audioSource.connect(audioWorkletNode);
     audioWorkletNode.connect(audioContext.destination);      
   } catch (err) {    
+    cleanupDetection();
     SetUIimageorData('#microphone', false, "./assets/images/mic-none.png");
     setTimeout(() =>{
       SetUIimageorData('#microphone', true, null);
@@ -223,3 +305,5 @@ async function startDetection() {
     if (blobUrl) URL.revokeObjectURL(blobUrl);
   }
 }
+
+window.addEventListener('beforeunload', cleanupDetection, { once: true });
